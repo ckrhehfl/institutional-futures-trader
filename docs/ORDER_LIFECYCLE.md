@@ -11,19 +11,21 @@ This lifecycle defines how an idea becomes an order, how an order becomes execut
    - A `Signal` is not executable and cannot reach the exchange.
 
 2. `OrderIntentCreated`
-   - Strategy or sizing logic creates an `OrderIntent`.
+   - `Intent Builder` or `Portfolio Construction` creates an `OrderIntent`.
+   - Strategy and AI/ML modules do not create executable orders.
    - Intent includes source, symbol, side, size, price constraints, leverage/margin assumptions, and rationale.
 
 3. `RiskEvaluated`
    - `Risk Engine` evaluates the intent.
-   - Output is `RiskDecision`: approved, rejected, modified, or requires_review.
+   - Output is `RiskDecision`: approved, rejected, or requires_review.
 
 4. `OrderAcceptedByOMS`
    - Only risk-approved intent can become an `Order`.
    - `OMS` assigns identity, correlation id, and initial lifecycle state.
 
 5. `OrderSubmitted`
-   - `OMS` sends an exchange-neutral command to the exchange adapter.
+   - `OMS` sends an exchange-neutral command to the execution gateway.
+   - The execution gateway selects simulator, demo, or live venue according to mode guards.
    - Adapter translates the command to BingX only inside `adapters/exchanges/bingx`.
 
 6. `ExchangeAcknowledged`
@@ -62,6 +64,7 @@ Examples:
 - exchange position quantity differs from internal position;
 - fill arrives after reconnect or restart;
 - cancellation result is unknown.
+- reduce-only intent would increase exposure because position mode or side mapping is wrong.
 
 ## Restart Recovery
 
@@ -70,6 +73,7 @@ After restart, the system must:
 - rebuild internal state from durable event/state records;
 - fetch exchange snapshots where applicable;
 - reconcile open orders, positions, balances, leverage, and margin mode;
+- verify execution venue and credentials match the intended mode;
 - block new risk-increasing orders until recovery and reconciliation are complete.
 
 ## Audit Requirements

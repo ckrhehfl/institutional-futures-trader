@@ -17,9 +17,10 @@
 
 - Core trading logic must be exchange-independent.
 - BingX-specific code must stay under `adapters/exchanges/bingx`.
-- Strategies must not call exchange APIs directly.
+- Strategies may emit `Signal` only; they must not create executable orders or call exchange APIs directly.
 - AI/ML modules must not submit orders directly.
-- Every `OrderIntent` must pass through the `Risk Engine` and `OMS`.
+- `Intent Builder` converts approved signal context into `OrderIntent`.
+- Every `OrderIntent` must pass through the `Risk Engine`, `OMS`, and execution gateway.
 - `Risk Engine` decisions override strategy, AI, configuration, and operator intent.
 - `paper`, `demo`, and `live` should share the same core code path wherever possible.
 - All important events must be auditable: `Signal`, `RiskDecision`, `Order`, `Fill`, `Position`, `PnL`, errors, and reconciliation events.
@@ -33,6 +34,7 @@ This repository is assumed to be public-safe.
 - Only `.env.example` may be committed as an environment template.
 - Exchange API keys must have withdrawal permission disabled.
 - Any credential-looking value in examples must be obviously non-secret and non-real.
+- Future implementation must include `.gitignore`, secret scanning, and log redaction rules before any credential-loading code is added.
 
 ## Live Trading Warning
 
@@ -42,7 +44,7 @@ Live trading must not be a simple config toggle. It requires:
 - explicit human approval;
 - separate live-only environment variables;
 - runtime confirmation that live mode was intentionally requested;
-- evidence from paper/demo trading, reconciliation, and risk controls.
+- required evidence from paper and demo trading, reconciliation, and risk controls.
 
 If live state is uncertain, the system must halt, reduce risk, or require operator review rather than continue silently.
 

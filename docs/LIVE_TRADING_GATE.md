@@ -15,12 +15,14 @@ Live activation requires all of the following:
 - runtime confirmation that live mode was intentionally requested;
 - non-withdrawal exchange API keys;
 - documented evidence from paper trading;
-- documented evidence from demo trading where available;
+- documented evidence from demo trading;
 - passing tests for `Risk Engine`, `OMS`, `Order Lifecycle`, `Position/PnL`, and `Reconciliation`;
 - tested kill switch and max loss behavior;
 - successful reconciliation of orders, positions, balances, leverage, and margin mode;
 - restart recovery verification;
 - failure handling verification for API outage, WebSocket disconnect, stale data, partial fills, and mismatches.
+
+If BingX demo/sandbox is formally unavailable, live activation still requires an approved substitute plan that documents why demo evidence cannot be produced and what additional paper/replay/reconciliation evidence replaces it.
 
 ## Prohibited Activation Pattern
 
@@ -34,6 +36,8 @@ or any equivalent single config value.
 
 Live must require multiple independent confirmations across policy, environment, runtime, and operator approval.
 
+The execution gateway must not select a live venue unless these confirmations are all present. Any ambiguous state must resolve to `paper` or fail closed.
+
 ## Public Repository Safety
 
 - Real API key, secret, token, account id, or exchange account details must never be committed.
@@ -41,6 +45,7 @@ Live must require multiple independent confirmations across policy, environment,
 - `.env.example` is allowed and must not contain real credentials.
 - API keys must have withdrawal permission disabled.
 - Logs and audit records must not reveal secret values.
+- Secret scanning and log redaction must be in place before live credential loading exists.
 
 ## Required Runtime Guards
 
@@ -50,6 +55,7 @@ Runtime must verify:
 - live environment variables are present and explicitly named for live use;
 - paper/demo-only credentials are not being reused ambiguously;
 - operator approval artifact or confirmation is present;
+- execution gateway selected the live venue only after live guard approval;
 - kill switch is inactive but available;
 - max loss limits are configured;
 - reconciliation is current;

@@ -26,17 +26,19 @@ Required test-first areas:
 - `Position/PnL`
 - `Reconciliation`
 
+Required test categories include unit tests, invariant/property tests, replay tests, adapter contract tests, failure-injection tests, restart recovery tests, reconciliation drift tests, and negative live-guard tests.
+
 ## Phase 2: Backtest Mode
 
 Implement historical replay and deterministic evaluation using the same core domain flow planned for paper/demo/live. Backtest results must include fees, slippage assumptions, funding treatment, PnL, drawdown, and risk decision history.
 
 ## Phase 3: Paper Trading
 
-Implement default runtime mode. Paper mode must exercise `Strategy -> Risk Engine -> OMS -> Execution Simulator -> Position/PnL -> Reconciliation` without submitting real exchange orders.
+Implement default runtime mode. Paper mode must exercise `Strategy -> Intent Builder -> Risk Engine -> OMS -> Execution Gateway -> Execution Simulator -> Position/PnL -> Reconciliation` without submitting real exchange orders or instantiating live exchange order paths.
 
 ## Phase 4: BingX Demo Trading
 
-Add BingX demo/sandbox adapter behavior after core and paper behavior are tested. Demo must validate connectivity, order lifecycle, reconciliation, and failure handling without live capital.
+Add BingX demo/sandbox adapter behavior after core and paper behavior are tested. Demo must use demo-scoped credentials and validate connectivity, order lifecycle, reconciliation, and failure handling without live capital.
 
 ## Phase 5: Live Trading Gate Preparation
 
@@ -44,7 +46,7 @@ Prepare live path only after paper/demo evidence shows stability, correctness, r
 
 ## Phase 6: Gated Live Trading
 
-Enable live only after `docs/LIVE_TRADING_GATE.md` passes. Live mode must require explicit approval, separate environment variables, runtime confirmation, and non-withdrawal API keys.
+Enable live only after `docs/LIVE_TRADING_GATE.md` passes. Live mode must require explicit approval, separate environment variables, runtime confirmation, paper evidence, demo evidence, and non-withdrawal API keys.
 
 ## Expansion Path
 

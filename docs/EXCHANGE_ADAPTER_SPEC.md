@@ -14,6 +14,8 @@ adapters/exchanges/bingx
 
 No core module may import BingX-specific types, clients, response payloads, or authentication helpers.
 
+Core domain names must remain exchange-neutral. Symbol mapping, order status mapping, error-code mapping, instrument-rule mapping, and authentication details are adapter-owned concerns.
+
 ## Adapter Responsibilities
 
 Adapter may:
@@ -22,6 +24,7 @@ Adapter may:
 - translate BingX responses into exchange-neutral events;
 - manage REST/WebSocket connectivity;
 - normalize market data, account data, order status, fills, funding, fees, leverage, and margin information;
+- normalize instrument rules, position mode, reduce-only/close-only/post-only support, and margin constraints;
 - provide exchange state snapshots for reconciliation.
 
 Adapter must not:
@@ -31,6 +34,7 @@ Adapter must not:
 - create orders without `OMS` command;
 - store or print secrets;
 - expose raw credential values in logs, errors, tests, docs, or telemetry.
+- leak BingX response payload shapes into core interfaces.
 
 ## Public Repository Safety
 
@@ -39,6 +43,7 @@ Adapter must not:
 - `.env.example` is the only allowed environment template.
 - API keys must have withdrawal permission disabled.
 - Runtime credential loading must fail closed when required live/demo credentials are missing or ambiguous.
+- Credential-loading work must include `.gitignore`, secret scanning, fixture policy, and log redaction before integration credentials are used.
 
 ## Required Capabilities
 
@@ -50,6 +55,9 @@ The adapter contract should eventually support:
 - order status normalization;
 - fill normalization;
 - leverage and margin mode query/update where supported;
+- instrument rules such as tick size, step size, min notional, and max leverage;
+- position mode query/update where supported;
+- order constraints such as reduce-only, close-only, post-only, and time-in-force where supported;
 - fee and funding reporting;
 - exchange clock/time synchronization metadata;
 - reconnect and resubscribe behavior;

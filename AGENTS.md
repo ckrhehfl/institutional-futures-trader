@@ -25,11 +25,13 @@
 
 - Core domain logic must be exchange-independent.
 - BingX-specific code must live only under `adapters/exchanges/bingx`.
-- Strategy modules must not call exchange APIs directly.
+- Strategy modules may emit `Signal` only. They must not create executable orders or call exchange APIs directly.
 - AI/ML modules must not submit orders directly.
-- All order intent must flow through `Risk Engine` and `OMS`.
+- `Intent Builder` or `Portfolio Construction` may convert signal context into `OrderIntent`.
+- All order intent must flow through `Risk Engine`, `OMS`, and the execution gateway.
 - `Risk Engine` has final authority over strategy, AI, config, and operator intent.
 - `paper`, `demo`, and `live` should share the same core event path.
+- `paper` must route only to a simulator execution venue. `demo` and `live` must use explicit, separate execution venues.
 
 ## Testing Rules
 
@@ -43,6 +45,8 @@ Future implementation of these modules must be test-first:
 
 Live-trading-related code without tests is prohibited. If a change can affect live capital, it must include tests that prove failure handling and guard behavior.
 
+Required test categories for future implementation include unit tests, invariant/property tests, replay tests, adapter contract tests, failure-injection tests, restart recovery tests, reconciliation drift tests, and negative live-guard tests.
+
 ## Live Trading Rules
 
 - Default execution mode must be `paper`.
@@ -55,3 +59,4 @@ Live-trading-related code without tests is prohibited. If a change can affect li
 - Keep Korean prose for explanation and English names for stable domain terms and interfaces.
 - Update documentation before implementing behavior that changes architecture, risk policy, order lifecycle, or live gate assumptions.
 - Do not leave unfinished markers or ambiguous placeholder requirements in committed documentation.
+- Define `.gitignore`, secret scanning, fixture policy, and log redaction before adding credential-loading code.
