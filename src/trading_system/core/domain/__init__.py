@@ -11,6 +11,7 @@ from trading_system.core.domain.enums import (
     TimeInForce,
     TradingMode,
 )
+from trading_system.core.domain.models import OrderIntent, Signal
 
 __all__ = [
     "ExecutionVenue",
@@ -22,4 +23,6 @@ __all__ = [
     "PositionSide",
     "TimeInForce",
     "TradingMode",
+    "OrderIntent",
+    "Signal",
 ]
