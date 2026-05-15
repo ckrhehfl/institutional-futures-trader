@@ -56,7 +56,7 @@ def ensure_timezone_aware(name: str, value: datetime) -> datetime:
 
 
 def normalized_metadata_key(key: str) -> str:
-    key_with_separators = key.replace("-", "_")
+    key_with_separators = re.sub(r"[^0-9A-Za-z]+", "_", key)
     split_acronyms = re.sub(r"([A-Z]+)([A-Z][a-z])", r"\1_\2", key_with_separators)
     split_camel = re.sub(r"([a-z0-9])([A-Z])", r"\1_\2", split_acronyms)
     return re.sub(r"_+", "_", split_camel).lower()

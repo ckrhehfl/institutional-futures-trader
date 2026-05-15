@@ -208,3 +208,26 @@ def test_limit_order_intent_rejects_immediate_post_only_semantics() -> None:
                 created_at=NOW,
                 metadata={},
             )
+
+
+def test_limit_order_intent_rejects_mismatched_post_only_fields() -> None:
+    with pytest.raises(ValueError, match="post-only fields must agree"):
+        OrderIntent(
+            intent_id="intent-limit-post-only-mismatch",
+            source_signal_id="sig-1",
+            created_by="order_intent_builder",
+            symbol="BTC-USDT",
+            side=OrderSide.BUY,
+            order_type=OrderType.LIMIT,
+            quantity=Decimal("0.001"),
+            limit_price=Decimal("100000"),
+            time_in_force=TimeInForce.POST_ONLY,
+            trading_mode=TradingMode.PAPER,
+            execution_venue=ExecutionVenue.PAPER,
+            leverage=Decimal("1"),
+            reduce_only=False,
+            close_only=False,
+            post_only=False,
+            created_at=NOW,
+            metadata={},
+        )

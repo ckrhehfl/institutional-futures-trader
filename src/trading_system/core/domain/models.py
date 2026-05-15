@@ -99,6 +99,8 @@ class OrderIntent:
             self.time_in_force is TimeInForce.POST_ONLY or self.post_only
         ):
             raise ValueError("post-only is only valid for limit orders")
+        if self.time_in_force is TimeInForce.POST_ONLY and not self.post_only:
+            raise ValueError("post-only fields must agree")
         if self.post_only and self.time_in_force is not TimeInForce.POST_ONLY:
             raise ValueError("post-only limit orders must use post-only time in force")
         if self.limit_price is not None:
@@ -164,6 +166,8 @@ class Order:
             self.time_in_force is TimeInForce.POST_ONLY or self.post_only
         ):
             raise ValueError("post-only is only valid for limit orders")
+        if self.time_in_force is TimeInForce.POST_ONLY and not self.post_only:
+            raise ValueError("post-only fields must agree")
         if self.post_only and self.time_in_force is not TimeInForce.POST_ONLY:
             raise ValueError("post-only limit orders must use post-only time in force")
         if self.limit_price is not None:
