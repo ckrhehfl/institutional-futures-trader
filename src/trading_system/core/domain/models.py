@@ -132,6 +132,10 @@ class Order:
         ensure_non_negative_decimal("filled_quantity", self.filled_quantity)
         if self.filled_quantity > self.quantity:
             raise ValueError("filled_quantity must not exceed quantity")
+        if self.status is OrderStatus.PARTIALLY_FILLED and not (
+            Decimal("0") < self.filled_quantity < self.quantity
+        ):
+            raise ValueError("partially filled order requires partial filled quantity")
         if self.status in TERMINAL_FILLED_STATUSES and self.filled_quantity != self.quantity:
             raise ValueError("filled order must have no remaining quantity")
         if self.order_type in UNSUPPORTED_STOP_ORDER_TYPES:
@@ -146,6 +150,8 @@ class Order:
             ensure_positive_decimal("limit_price", self.limit_price)
         ensure_timezone_aware("created_at", self.created_at)
         ensure_timezone_aware("updated_at", self.updated_at)
+        if self.updated_at < self.created_at:
+            raise ValueError("updated_at must not predate created_at")
         object.__setattr__(self, "metadata", safe_metadata(self.metadata))
 
     @property

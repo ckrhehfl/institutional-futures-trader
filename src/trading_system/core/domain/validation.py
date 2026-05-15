@@ -1,5 +1,6 @@
 """Validation helpers for exchange-independent domain models."""
 
+import re
 from collections.abc import Mapping
 from datetime import datetime
 from decimal import Decimal
@@ -41,10 +42,17 @@ def ensure_timezone_aware(name: str, value: datetime) -> datetime:
     return value
 
 
+def normalized_metadata_key(key: str) -> str:
+    split_camel = re.sub(r"(?<!^)(?=[A-Z])", "_", key)
+    return split_camel.replace("-", "_").lower()
+
+
 def metadata_without_exchange_payload(
     metadata: Mapping[str, MetadataValue],
 ) -> Mapping[str, MetadataValue]:
-    forbidden_keys = FORBIDDEN_METADATA_KEYS.intersection(key.lower() for key in metadata)
+    forbidden_keys = FORBIDDEN_METADATA_KEYS.intersection(
+        normalized_metadata_key(key) for key in metadata
+    )
     if forbidden_keys:
         raise ValueError("metadata must not contain exchange-specific payload keys")
     return MappingProxyType(dict(metadata))

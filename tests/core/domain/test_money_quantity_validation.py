@@ -160,6 +160,55 @@ def test_filled_order_must_have_no_remaining_quantity() -> None:
         replace(order, filled_quantity=Decimal("0.0005"))
 
 
+def test_partially_filled_order_requires_partial_quantity() -> None:
+    order = Order(
+        order_id="order-1",
+        intent_id="intent-1",
+        symbol="BTC-USDT",
+        side=OrderSide.BUY,
+        order_type=OrderType.LIMIT,
+        status=OrderStatus.PARTIALLY_FILLED,
+        quantity=Decimal("0.001"),
+        filled_quantity=Decimal("0.0005"),
+        limit_price=Decimal("100000"),
+        time_in_force=TimeInForce.GTC,
+        reduce_only=False,
+        close_only=False,
+        post_only=False,
+        created_at=NOW,
+        updated_at=NOW,
+        metadata={},
+    )
+
+    assert order.remaining_quantity == Decimal("0.0005")
+
+    for filled_quantity in [Decimal("0"), Decimal("0.001")]:
+        with pytest.raises(ValueError, match="partially filled order requires"):
+            replace(order, filled_quantity=filled_quantity)
+
+
+def test_order_updated_at_must_not_predate_created_at() -> None:
+    with pytest.raises(ValueError, match="updated_at must not predate created_at"):
+        Order(
+            order_id="order-1",
+            intent_id="intent-1",
+            symbol="BTC-USDT",
+            side=OrderSide.BUY,
+            order_type=OrderType.LIMIT,
+            status=OrderStatus.ACCEPTED,
+            quantity=Decimal("0.001"),
+            filled_quantity=Decimal("0"),
+            limit_price=Decimal("100000"),
+            time_in_force=TimeInForce.GTC,
+            reduce_only=False,
+            close_only=False,
+            post_only=False,
+            created_at=NOW,
+            updated_at=datetime(2026, 5, 15, 11, 59, tzinfo=UTC),
+            metadata={},
+        )
+
+
 def test_non_flat_position_requires_positive_quantity() -> None:
     for side in [PositionSide.LONG, PositionSide.SHORT]:
         with pytest.raises(ValueError, match="non-flat position quantity must be positive"):
