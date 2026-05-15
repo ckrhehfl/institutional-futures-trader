@@ -18,9 +18,10 @@
 - Core trading logic must be exchange-independent.
 - BingX-specific code must stay under `adapters/exchanges/bingx`.
 - Strategies may emit `Signal` only; they must not create executable orders or call exchange APIs directly.
-- AI/ML modules must not submit orders directly.
-- `Intent Builder` converts approved signal context into `OrderIntent`.
-- Every `OrderIntent` must pass through the `Risk Engine`, `OMS`, and execution gateway.
+- AI/ML modules may emit advisory outputs only and must not create `OrderIntent` or submit orders directly.
+- `Intent Builder`, `Portfolio Construction`, or `Order Intent Builder` converts approved signal context into `OrderIntent`.
+- Every `OrderIntent` must pass through the `Risk Engine`, `OMS`, and `ExecutionGateway`.
+- `paper`, `demo`, and `live` share the core event/OMS path but must use explicitly separated execution venues.
 - `Risk Engine` decisions override strategy, AI, configuration, and operator intent.
 - `paper`, `demo`, and `live` should share the same core code path wherever possible.
 - All important events must be auditable: `Signal`, `RiskDecision`, `Order`, `Fill`, `Position`, `PnL`, errors, and reconciliation events.

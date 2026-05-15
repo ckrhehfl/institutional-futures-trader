@@ -26,12 +26,12 @@
 - Core domain logic must be exchange-independent.
 - BingX-specific code must live only under `adapters/exchanges/bingx`.
 - Strategy modules may emit `Signal` only. They must not create executable orders or call exchange APIs directly.
-- AI/ML modules must not submit orders directly.
-- `Intent Builder` or `Portfolio Construction` may convert signal context into `OrderIntent`.
-- All order intent must flow through `Risk Engine`, `OMS`, and the execution gateway.
+- AI/ML modules may emit `Signal`, confidence, regime, anomaly, or sizing suggestions only. They must not create `OrderIntent` or submit orders directly.
+- `Intent Builder`, `Portfolio Construction`, or `Order Intent Builder` may convert signal context into `OrderIntent`.
+- All order intent must flow through `Risk Engine`, `OMS`, and `ExecutionGateway`.
 - `Risk Engine` has final authority over strategy, AI, config, and operator intent.
 - `paper`, `demo`, and `live` should share the same core event path.
-- `paper` must route only to a simulator execution venue. `demo` and `live` must use explicit, separate execution venues.
+- `paper` must route only to `PaperExecutionVenue` or simulator execution venue. `demo` must route only to `DemoExecutionVenue`. `live` must not access `LiveExecutionVenue` before `docs/LIVE_TRADING_GATE.md` passes.
 
 ## Testing Rules
 

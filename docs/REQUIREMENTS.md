@@ -7,9 +7,9 @@
 ## Execution Modes
 
 - `backtest`: historical data로 strategy/risk/OMS behavior를 재현한다.
-- `paper`: 기본 실행 모드이며 real exchange order를 제출하지 않고 simulator execution venue만 사용한다.
-- `demo`: exchange-provided demo/sandbox 환경을 사용하되 core path는 paper/live와 최대한 동일해야 하며 live credentials를 재사용하지 않는다.
-- `live`: 기본 비활성화 상태이며 `docs/LIVE_TRADING_GATE.md` 통과 전에는 사용할 수 없다.
+- `paper`: 기본 실행 모드이며 real exchange order를 제출하지 않고 `PaperExecutionVenue` 또는 simulator execution venue만 사용한다.
+- `demo`: exchange-provided demo/sandbox 환경을 사용하되 core path는 paper/live와 최대한 동일해야 하며 `DemoExecutionVenue`와 demo-scoped credentials만 사용한다.
+- `live`: 기본 비활성화 상태이며 `docs/LIVE_TRADING_GATE.md` 통과 전에는 `LiveExecutionVenue`에 접근할 수 없다.
 
 ## Functional Requirements
 
@@ -17,9 +17,9 @@
 - Core logic은 exchange-independent여야 한다.
 - BingX-specific behavior는 `adapters/exchanges/bingx` 경계 안에 둔다.
 - Strategy는 `Signal`만 만들 수 있으며 exchange API나 executable order path를 직접 호출할 수 없다.
-- AI/ML은 regime detection, signal confidence, position sizing suggestion, anomaly detection, model retraining 보조 역할로 제한한다.
-- `Intent Builder` 또는 `Portfolio Construction`만 signal context를 `OrderIntent`로 변환한다.
-- 모든 order intent는 `Risk Engine`, `OMS`, execution gateway를 통과해야 한다.
+- AI/ML은 `Signal`, regime detection, signal confidence, position sizing suggestion, anomaly detection, model retraining 보조 역할로 제한하며 `OrderIntent`를 만들 수 없다.
+- `Intent Builder`, `Portfolio Construction`, 또는 `Order Intent Builder`만 signal context를 `OrderIntent`로 변환한다.
+- 모든 order intent는 `Risk Engine`, `OMS`, `ExecutionGateway`를 통과해야 한다.
 - `Risk Engine`은 모든 strategy/AI/operator 판단보다 우선한다.
 - 모든 significant event를 기록한다: `Signal`, `RiskDecision`, `Order`, `Fill`, `PositionUpdate`, `PnLUpdate`, `Fee`, `FundingFee`, `ErrorEvent`, `ReconciliationEvent`.
 
@@ -38,6 +38,7 @@
 - Latency must be measured by segment: event received to risk decision, risk approval to OMS command, exchange event to order state update, fill to position/PnL update.
 - Audit log는 재현 가능하고 append-only 성격을 가져야 한다.
 - Mode parity를 유지하여 `paper`, `demo`, `live`가 가능한 한 동일한 code path를 사용한다.
+- Mode parity는 core event, risk, OMS, position, reconciliation path에 적용한다. 실제 execution venue는 `PaperExecutionVenue`, `DemoExecutionVenue`, `LiveExecutionVenue`로 명시적으로 분리한다.
 - Failure state에서는 silent continuation보다 halt, risk reduction, operator review를 우선한다.
 
 ## Public Repository Requirements

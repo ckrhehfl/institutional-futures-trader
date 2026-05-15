@@ -10,7 +10,7 @@
 - `SignalConfidence`: optional confidence score or qualitative label, including AI-assisted confidence.
 - `Regime`: optional market regime label such as trend, range, volatile, illiquid.
 - `AdvisorySuggestion`: non-binding AI/ML or analytics output such as confidence, anomaly, regime, or sizing suggestion.
-- `IntentBuilder`: component that converts signal context and portfolio constraints into `OrderIntent`.
+- `IntentBuilder` / `OrderIntentBuilder`: component that converts signal context and portfolio constraints into `OrderIntent`.
 
 ## Order Intent And Risk
 
@@ -58,6 +58,7 @@
 - `Signal` is never an order.
 - Strategy output must not create executable orders or exchange commands.
 - `OrderIntent` is created only by `IntentBuilder` or equivalent portfolio construction component.
+- AI/ML output is advisory and must not create `OrderIntent`.
 - `OrderIntent` is not executable until approved by `Risk Engine`.
 - `OMS` owns order lifecycle state.
 - Exchange adapter reports facts; it does not make strategy or risk decisions.

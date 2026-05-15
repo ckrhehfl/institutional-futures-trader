@@ -11,8 +11,9 @@ This lifecycle defines how an idea becomes an order, how an order becomes execut
    - A `Signal` is not executable and cannot reach the exchange.
 
 2. `OrderIntentCreated`
-   - `Intent Builder` or `Portfolio Construction` creates an `OrderIntent`.
-   - Strategy and AI/ML modules do not create executable orders.
+   - `Intent Builder`, `Portfolio Construction`, or `Order Intent Builder` creates an `OrderIntent`.
+   - Strategy modules create `Signal` only.
+   - AI/ML modules may create `Signal`, confidence, regime, anomaly, or sizing suggestions only; they do not create `OrderIntent` or executable orders.
    - Intent includes source, symbol, side, size, price constraints, leverage/margin assumptions, and rationale.
 
 3. `RiskEvaluated`
@@ -24,8 +25,9 @@ This lifecycle defines how an idea becomes an order, how an order becomes execut
    - `OMS` assigns identity, correlation id, and initial lifecycle state.
 
 5. `OrderSubmitted`
-   - `OMS` sends an exchange-neutral command to the execution gateway.
-   - The execution gateway selects simulator, demo, or live venue according to mode guards.
+   - `OMS` sends an exchange-neutral command to `ExecutionGateway`.
+   - `ExecutionGateway` selects `PaperExecutionVenue`, `DemoExecutionVenue`, or `LiveExecutionVenue` according to mode guards.
+   - `PaperExecutionVenue` and `DemoExecutionVenue` are separate from `LiveExecutionVenue`; shared core path does not imply shared credentials or execution endpoints.
    - Adapter translates the command to BingX only inside `adapters/exchanges/bingx`.
 
 6. `ExchangeAcknowledged`

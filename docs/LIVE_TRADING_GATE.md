@@ -8,7 +8,7 @@ Default mode is always `paper`. `live` is disabled unless every gate condition b
 
 ## Hard Requirements
 
-Live activation requires all of the following:
+Live activation requires all of the following. Paper evidence and demo evidence are both mandatory before live trading:
 
 - explicit human approval for live trading;
 - separate live-only environment variables;
@@ -22,7 +22,7 @@ Live activation requires all of the following:
 - restart recovery verification;
 - failure handling verification for API outage, WebSocket disconnect, stale data, partial fills, and mismatches.
 
-If BingX demo/sandbox is formally unavailable, live activation still requires an approved substitute plan that documents why demo evidence cannot be produced and what additional paper/replay/reconciliation evidence replaces it.
+Demo evidence is not optional. If BingX demo/sandbox is formally unavailable, live activation still requires a separately approved substitute verification plan. That plan must document why demo evidence cannot be produced, what additional paper/replay/reconciliation evidence replaces it, and who approved the substitution.
 
 ## Prohibited Activation Pattern
 
@@ -36,7 +36,7 @@ or any equivalent single config value.
 
 Live must require multiple independent confirmations across policy, environment, runtime, and operator approval.
 
-The execution gateway must not select a live venue unless these confirmations are all present. Any ambiguous state must resolve to `paper` or fail closed.
+`ExecutionGateway` must not select `LiveExecutionVenue` unless these confirmations are all present. Any ambiguous state must resolve to `PaperExecutionVenue` or fail closed.
 
 ## Public Repository Safety
 
@@ -55,7 +55,7 @@ Runtime must verify:
 - live environment variables are present and explicitly named for live use;
 - paper/demo-only credentials are not being reused ambiguously;
 - operator approval artifact or confirmation is present;
-- execution gateway selected the live venue only after live guard approval;
+- `ExecutionGateway` selected `LiveExecutionVenue` only after live guard approval;
 - kill switch is inactive but available;
 - max loss limits are configured;
 - reconciliation is current;

@@ -86,6 +86,7 @@ When reconciliation detects material drift, the system must:
 
 - block new risk-increasing orders;
 - classify whether open orders, positions, balances, leverage, margin mode, or fills diverged;
+- compare internal state against a fresh exchange snapshot before deciding the source of truth;
 - prefer cancelling open orders when cancellation reduces uncertainty and does not increase risk;
 - require operator review before trusting a corrected state when exchange and internal history cannot be reconciled automatically;
 - record whether the internal event log, exchange snapshot, or manual review became the source of truth.

@@ -25,7 +25,7 @@ Risk Engine -> RiskDecision
 OMS -> Order Command
         |
         v
-Execution Gateway -> Execution Venue
+ExecutionGateway -> ExecutionVenue
         |
         v
 Exchange Adapter -> BingX
@@ -39,11 +39,11 @@ Fill / Account Event / Reconciliation Event
 Core modules must not depend on BingX-specific API shapes.
 
 - `Strategy`: consumes market/domain events and emits `Signal` only.
-- `AI/ML`: emits advisory metadata only, such as confidence, regime, anomaly, or sizing suggestion.
-- `Intent Builder/Portfolio Construction`: converts signal context into `OrderIntent` without bypassing risk.
+- `AI/ML`: emits advisory metadata only, such as confidence, regime, anomaly, signal support, or sizing suggestion. It must not create `OrderIntent`.
+- `Intent Builder/Portfolio Construction/Order Intent Builder`: converts signal context into `OrderIntent` without bypassing risk.
 - `Risk Engine`: validates or rejects every `OrderIntent`.
 - `OMS`: owns order state transitions after risk approval.
-- `Execution Gateway`: selects simulator, demo, or live execution venue after all mode guards pass.
+- `ExecutionGateway`: selects simulator, demo, or live `ExecutionVenue` after all mode guards pass.
 - `Portfolio/Position`: tracks exposure, margin, PnL, fees, and funding.
 - `Reconciliation`: compares internal state with exchange actual state.
 - `Exchange Adapter`: translates core commands/events to exchange-specific APIs.
@@ -68,10 +68,11 @@ The default mode is always `paper`. `live` requires the live gate and cannot be 
 
 Execution venue rules:
 
-- `paper` routes only to a simulator venue and must never instantiate a live exchange order path.
-- `demo` routes only to a demo/sandbox venue with demo-scoped credentials.
-- `live` routes only through `LiveTradingGuard` after `docs/LIVE_TRADING_GATE.md` passes.
-- Venue selection must fail closed when mode, credentials, or approval state are ambiguous.
+- `paper` routes only to `PaperExecutionVenue` or simulator venue and must never instantiate a live exchange order path.
+- `demo` routes only to `DemoExecutionVenue` with demo-scoped credentials.
+- `live` routes only to `LiveExecutionVenue` through `LiveTradingGuard` after `docs/LIVE_TRADING_GATE.md` passes.
+- Core event handling, risk, OMS, position, and reconciliation paths are shared across modes; the concrete `ExecutionVenue` is explicitly separated.
+- Venue selection must fail closed when mode, credentials, gate status, or approval state are ambiguous.
 
 ## Auditability
 
