@@ -43,8 +43,16 @@ def ensure_timezone_aware(name: str, value: datetime) -> datetime:
 
 
 def normalized_metadata_key(key: str) -> str:
-    split_camel = re.sub(r"(?<!^)(?=[A-Z])", "_", key)
-    return split_camel.replace("-", "_").lower()
+    key_with_separators = key.replace("-", "_")
+    split_acronyms = re.sub(r"([A-Z]+)([A-Z][a-z])", r"\1_\2", key_with_separators)
+    split_camel = re.sub(r"([a-z0-9])([A-Z])", r"\1_\2", split_acronyms)
+    return re.sub(r"_+", "_", split_camel).lower()
+
+
+def ensure_metadata_values_are_primitive(metadata: Mapping[str, object]) -> None:
+    for value in metadata.values():
+        if not isinstance(value, str | int | Decimal | bool):
+            raise ValueError("metadata values must be primitive")
 
 
 def metadata_without_exchange_payload(
@@ -55,6 +63,7 @@ def metadata_without_exchange_payload(
     )
     if forbidden_keys:
         raise ValueError("metadata must not contain exchange-specific payload keys")
+    ensure_metadata_values_are_primitive(metadata)
     return MappingProxyType(dict(metadata))
 
 

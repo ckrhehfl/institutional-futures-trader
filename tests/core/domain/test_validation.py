@@ -44,6 +44,25 @@ def test_metadata_rejects_exchange_specific_payloads() -> None:
 
 
 def test_metadata_rejects_secret_key_spelling_variants() -> None:
-    for key in ["api-key", "apiKey", "account-id", "accountId", "exchangeResponse"]:
+    for key in [
+        "api-key",
+        "apiKey",
+        "APIKey",
+        "API_KEY",
+        "account-id",
+        "accountId",
+        "ACCOUNT_ID",
+        "exchangeResponse",
+    ]:
         with pytest.raises(ValueError, match="metadata must not contain exchange-specific"):
             metadata_without_exchange_payload({key: "not allowed"})
+
+
+def test_metadata_rejects_non_primitive_values() -> None:
+    for metadata in [
+        {"context": {"safe_nested_key": "not allowed"}},
+        {"items": ["nested item"]},
+        {"value": object()},
+    ]:
+        with pytest.raises(ValueError, match="metadata values must be primitive"):
+            metadata_without_exchange_payload(metadata)
