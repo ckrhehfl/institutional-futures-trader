@@ -20,6 +20,7 @@ from trading_system.core.domain.enums import (
 )
 from trading_system.core.domain.validation import (
     MetadataValue,
+    ensure_finite_decimal,
     ensure_non_negative_decimal,
     ensure_positive_decimal,
     ensure_timezone_aware,
@@ -242,7 +243,10 @@ class PnL:
     metadata: Mapping[str, MetadataValue] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
+        ensure_finite_decimal("realized", self.realized)
+        ensure_finite_decimal("unrealized", self.unrealized)
         ensure_non_negative_decimal("fees", self.fees)
+        ensure_finite_decimal("funding", self.funding)
         ensure_timezone_aware("updated_at", self.updated_at)
         object.__setattr__(self, "metadata", safe_metadata(self.metadata))
 

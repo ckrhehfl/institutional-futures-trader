@@ -22,6 +22,7 @@ FORBIDDEN_METADATA_KEYS = frozenset(
         "token",
     }
 )
+FORBIDDEN_METADATA_TOKENS = frozenset({"account", "api", "secret", "token"})
 
 
 def ensure_positive_decimal(name: str, value: Decimal) -> Decimal:
@@ -37,6 +38,12 @@ def ensure_non_negative_decimal(name: str, value: Decimal) -> Decimal:
         raise ValueError(f"{name} must be finite")
     if value < Decimal("0"):
         raise ValueError(f"{name} must be non-negative")
+    return value
+
+
+def ensure_finite_decimal(name: str, value: Decimal) -> Decimal:
+    if not value.is_finite():
+        raise ValueError(f"{name} must be finite")
     return value
 
 
@@ -62,10 +69,12 @@ def ensure_metadata_values_are_primitive(metadata: Mapping[str, object]) -> None
 def metadata_without_exchange_payload(
     metadata: Mapping[str, MetadataValue],
 ) -> Mapping[str, MetadataValue]:
-    forbidden_keys = FORBIDDEN_METADATA_KEYS.intersection(
-        normalized_metadata_key(key) for key in metadata
-    )
-    if forbidden_keys:
+    normalized_keys = {normalized_metadata_key(key) for key in metadata}
+    forbidden_keys = FORBIDDEN_METADATA_KEYS.intersection(normalized_keys)
+    forbidden_tokens = {
+        token for key in normalized_keys for token in key.split("_")
+    }.intersection(FORBIDDEN_METADATA_TOKENS)
+    if forbidden_keys or forbidden_tokens:
         raise ValueError("metadata must not contain exchange-specific payload keys")
     ensure_metadata_values_are_primitive(metadata)
     return MappingProxyType(dict(metadata))
