@@ -61,6 +61,34 @@ def test_order_and_fill_validate_positive_values() -> None:
     assert fill.notional == Decimal("100.000")
 
 
+def test_pre_execution_order_states_reject_filled_quantity() -> None:
+    for status in [
+        OrderStatus.CREATED,
+        OrderStatus.PENDING_RISK,
+        OrderStatus.RISK_REJECTED,
+        OrderStatus.RISK_APPROVED,
+    ]:
+        with pytest.raises(ValueError, match="pre-execution order states must have zero fills"):
+            Order(
+                order_id=f"order-{status.value}",
+                intent_id="intent-1",
+                symbol="BTC-USDT",
+                side=OrderSide.BUY,
+                order_type=OrderType.LIMIT,
+                status=status,
+                quantity=Decimal("0.001"),
+                filled_quantity=Decimal("0.0005"),
+                limit_price=Decimal("100000"),
+                time_in_force=TimeInForce.GTC,
+                reduce_only=False,
+                close_only=False,
+                post_only=False,
+                created_at=NOW,
+                updated_at=NOW,
+                metadata={},
+            )
+
+
 def test_order_rejects_missing_limit_price_for_priced_orders() -> None:
     order = Order(
         order_id="order-1",

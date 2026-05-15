@@ -32,6 +32,14 @@ ORDER_INTENT_CREATORS = frozenset(
 LIMIT_PRICE_ORDER_TYPES = frozenset({OrderType.LIMIT})
 UNSUPPORTED_STOP_ORDER_TYPES = frozenset({OrderType.STOP, OrderType.STOP_LIMIT})
 TERMINAL_FILLED_STATUSES = frozenset({OrderStatus.FILLED})
+PRE_EXECUTION_STATUSES = frozenset(
+    {
+        OrderStatus.CREATED,
+        OrderStatus.PENDING_RISK,
+        OrderStatus.RISK_REJECTED,
+        OrderStatus.RISK_APPROVED,
+    }
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -136,6 +144,8 @@ class Order:
         ensure_non_negative_decimal("filled_quantity", self.filled_quantity)
         if self.filled_quantity > self.quantity:
             raise ValueError("filled_quantity must not exceed quantity")
+        if self.status in PRE_EXECUTION_STATUSES and self.filled_quantity != Decimal("0"):
+            raise ValueError("pre-execution order states must have zero fills")
         if self.status is OrderStatus.PARTIALLY_FILLED and not (
             Decimal("0") < self.filled_quantity < self.quantity
         ):
