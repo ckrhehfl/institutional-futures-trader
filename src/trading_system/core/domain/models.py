@@ -29,6 +29,8 @@ from trading_system.core.domain.validation import (
 ORDER_INTENT_CREATORS = frozenset(
     {"intent_builder", "order_intent_builder", "portfolio_construction"}
 )
+LIMIT_PRICE_ORDER_TYPES = frozenset({OrderType.LIMIT})
+UNSUPPORTED_STOP_ORDER_TYPES = frozenset({OrderType.STOP, OrderType.STOP_LIMIT})
 
 
 @dataclass(frozen=True, slots=True)
@@ -76,7 +78,9 @@ class OrderIntent:
             raise ValueError("OrderIntent creator must be an intent builder")
         ensure_positive_decimal("quantity", self.quantity)
         ensure_positive_decimal("leverage", self.leverage)
-        if self.order_type in {OrderType.LIMIT, OrderType.STOP_LIMIT} and self.limit_price is None:
+        if self.order_type in UNSUPPORTED_STOP_ORDER_TYPES:
+            raise ValueError("stop order types are not supported until trigger_price is modeled")
+        if self.order_type in LIMIT_PRICE_ORDER_TYPES and self.limit_price is None:
             raise ValueError("limit_price is required for priced order types")
         if self.limit_price is not None:
             ensure_positive_decimal("limit_price", self.limit_price)
@@ -123,6 +127,10 @@ class Order:
         ensure_non_negative_decimal("filled_quantity", self.filled_quantity)
         if self.filled_quantity > self.quantity:
             raise ValueError("filled_quantity must not exceed quantity")
+        if self.order_type in UNSUPPORTED_STOP_ORDER_TYPES:
+            raise ValueError("stop order types are not supported until trigger_price is modeled")
+        if self.order_type in LIMIT_PRICE_ORDER_TYPES and self.limit_price is None:
+            raise ValueError("limit_price is required for priced order types")
         if self.limit_price is not None:
             ensure_positive_decimal("limit_price", self.limit_price)
         ensure_timezone_aware("created_at", self.created_at)

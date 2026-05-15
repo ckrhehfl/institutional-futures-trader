@@ -61,6 +61,53 @@ def test_order_and_fill_validate_positive_values() -> None:
     assert fill.notional == Decimal("100.000")
 
 
+def test_order_rejects_missing_limit_price_for_priced_orders() -> None:
+    order = Order(
+        order_id="order-1",
+        intent_id="intent-1",
+        symbol="BTC-USDT",
+        side=OrderSide.BUY,
+        order_type=OrderType.LIMIT,
+        status=OrderStatus.ACCEPTED,
+        quantity=Decimal("0.001"),
+        filled_quantity=Decimal("0"),
+        limit_price=Decimal("100000"),
+        time_in_force=TimeInForce.POST_ONLY,
+        reduce_only=False,
+        close_only=False,
+        post_only=True,
+        created_at=NOW,
+        updated_at=NOW,
+        metadata={},
+    )
+
+    with pytest.raises(ValueError, match="limit_price is required"):
+        replace(order, limit_price=None)
+
+
+def test_order_rejects_stop_types_until_trigger_price_exists() -> None:
+    for order_type in [OrderType.STOP, OrderType.STOP_LIMIT]:
+        with pytest.raises(ValueError, match="stop order types are not supported"):
+            Order(
+                order_id=f"order-{order_type.value}",
+                intent_id="intent-1",
+                symbol="BTC-USDT",
+                side=OrderSide.BUY,
+                order_type=order_type,
+                status=OrderStatus.ACCEPTED,
+                quantity=Decimal("0.001"),
+                filled_quantity=Decimal("0"),
+                limit_price=Decimal("100000"),
+                time_in_force=TimeInForce.GTC,
+                reduce_only=False,
+                close_only=False,
+                post_only=False,
+                created_at=NOW,
+                updated_at=NOW,
+                metadata={},
+            )
+
+
 def test_fee_funding_pnl_and_position_validate_decimal_values() -> None:
     fee = Fee(symbol="BTC-USDT", amount=Decimal("0.10"), asset="USDT", occurred_at=NOW, metadata={})
     funding = FundingFee(

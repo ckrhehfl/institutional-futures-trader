@@ -87,8 +87,31 @@ def test_order_intent_rejects_strategy_or_ai_creator() -> None:
 
 
 def test_priced_order_intent_requires_limit_price() -> None:
-    for order_type in [OrderType.LIMIT, OrderType.STOP_LIMIT]:
-        with pytest.raises(ValueError, match="limit_price is required"):
+    with pytest.raises(ValueError, match="limit_price is required"):
+        OrderIntent(
+            intent_id="intent-limit",
+            source_signal_id="sig-1",
+            created_by="order_intent_builder",
+            symbol="BTC-USDT",
+            side=OrderSide.BUY,
+            order_type=OrderType.LIMIT,
+            quantity=Decimal("0.001"),
+            limit_price=None,
+            time_in_force=TimeInForce.GTC,
+            trading_mode=TradingMode.PAPER,
+            execution_venue=ExecutionVenue.PAPER,
+            leverage=Decimal("1"),
+            reduce_only=False,
+            close_only=False,
+            post_only=False,
+            created_at=NOW,
+            metadata={},
+        )
+
+
+def test_stop_order_intents_are_rejected_until_trigger_price_exists() -> None:
+    for order_type in [OrderType.STOP, OrderType.STOP_LIMIT]:
+        with pytest.raises(ValueError, match="stop order types are not supported"):
             OrderIntent(
                 intent_id=f"intent-{order_type.value}",
                 source_signal_id="sig-1",
@@ -97,7 +120,7 @@ def test_priced_order_intent_requires_limit_price() -> None:
                 side=OrderSide.BUY,
                 order_type=order_type,
                 quantity=Decimal("0.001"),
-                limit_price=None,
+                limit_price=Decimal("100000"),
                 time_in_force=TimeInForce.GTC,
                 trading_mode=TradingMode.PAPER,
                 execution_venue=ExecutionVenue.PAPER,
