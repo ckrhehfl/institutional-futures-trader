@@ -85,6 +85,28 @@ def test_order_rejects_missing_limit_price_for_priced_orders() -> None:
         replace(order, limit_price=None)
 
 
+def test_market_order_rejects_limit_price() -> None:
+    with pytest.raises(ValueError, match="limit_price is only valid for limit orders"):
+        Order(
+            order_id="order-market-with-price",
+            intent_id="intent-1",
+            symbol="BTC-USDT",
+            side=OrderSide.BUY,
+            order_type=OrderType.MARKET,
+            status=OrderStatus.ACCEPTED,
+            quantity=Decimal("0.001"),
+            filled_quantity=Decimal("0"),
+            limit_price=Decimal("100000"),
+            time_in_force=TimeInForce.IOC,
+            reduce_only=False,
+            close_only=False,
+            post_only=False,
+            created_at=NOW,
+            updated_at=NOW,
+            metadata={},
+        )
+
+
 def test_order_rejects_stop_types_until_trigger_price_exists() -> None:
     for order_type in [OrderType.STOP, OrderType.STOP_LIMIT]:
         with pytest.raises(ValueError, match="stop order types are not supported"):

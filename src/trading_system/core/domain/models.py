@@ -83,6 +83,8 @@ class OrderIntent:
             raise ValueError("stop order types are not supported until trigger_price is modeled")
         if self.order_type in LIMIT_PRICE_ORDER_TYPES and self.limit_price is None:
             raise ValueError("limit_price is required for priced order types")
+        if self.order_type not in LIMIT_PRICE_ORDER_TYPES and self.limit_price is not None:
+            raise ValueError("limit_price is only valid for limit orders")
         if self.order_type not in LIMIT_PRICE_ORDER_TYPES and (
             self.time_in_force is TimeInForce.POST_ONLY or self.post_only
         ):
@@ -142,6 +144,8 @@ class Order:
             raise ValueError("stop order types are not supported until trigger_price is modeled")
         if self.order_type in LIMIT_PRICE_ORDER_TYPES and self.limit_price is None:
             raise ValueError("limit_price is required for priced order types")
+        if self.order_type not in LIMIT_PRICE_ORDER_TYPES and self.limit_price is not None:
+            raise ValueError("limit_price is only valid for limit orders")
         if self.order_type not in LIMIT_PRICE_ORDER_TYPES and (
             self.time_in_force is TimeInForce.POST_ONLY or self.post_only
         ):
