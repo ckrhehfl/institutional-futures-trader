@@ -138,6 +138,10 @@ class Order:
             raise ValueError("stop order types are not supported until trigger_price is modeled")
         if self.order_type in LIMIT_PRICE_ORDER_TYPES and self.limit_price is None:
             raise ValueError("limit_price is required for priced order types")
+        if self.order_type not in LIMIT_PRICE_ORDER_TYPES and (
+            self.time_in_force is TimeInForce.POST_ONLY or self.post_only
+        ):
+            raise ValueError("post-only is only valid for limit orders")
         if self.limit_price is not None:
             ensure_positive_decimal("limit_price", self.limit_price)
         ensure_timezone_aware("created_at", self.created_at)
@@ -240,9 +244,11 @@ class Position:
                 raise ValueError("flat position quantity must be zero")
             if self.entry_price not in {None, Decimal("0")}:
                 raise ValueError("flat position entry_price must be absent or zero")
-        elif self.entry_price is None:
-            raise ValueError("entry_price is required for open positions")
         else:
+            if self.quantity == Decimal("0"):
+                raise ValueError("non-flat position quantity must be positive")
+            if self.entry_price is None:
+                raise ValueError("entry_price is required for open positions")
             ensure_positive_decimal("entry_price", self.entry_price)
         ensure_positive_decimal("mark_price", self.mark_price)
         ensure_positive_decimal("leverage", self.leverage)

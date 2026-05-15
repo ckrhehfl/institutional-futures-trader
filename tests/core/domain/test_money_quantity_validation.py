@@ -108,6 +108,32 @@ def test_order_rejects_stop_types_until_trigger_price_exists() -> None:
             )
 
 
+def test_market_order_rejects_post_only_semantics() -> None:
+    for time_in_force, post_only in [
+        (TimeInForce.POST_ONLY, False),
+        (TimeInForce.IOC, True),
+    ]:
+        with pytest.raises(ValueError, match="post-only is only valid for limit orders"):
+            Order(
+                order_id=f"order-market-{time_in_force.value}-{post_only}",
+                intent_id="intent-1",
+                symbol="BTC-USDT",
+                side=OrderSide.BUY,
+                order_type=OrderType.MARKET,
+                status=OrderStatus.ACCEPTED,
+                quantity=Decimal("0.001"),
+                filled_quantity=Decimal("0"),
+                limit_price=None,
+                time_in_force=time_in_force,
+                reduce_only=False,
+                close_only=False,
+                post_only=post_only,
+                created_at=NOW,
+                updated_at=NOW,
+                metadata={},
+            )
+
+
 def test_filled_order_must_have_no_remaining_quantity() -> None:
     order = Order(
         order_id="order-1",
@@ -132,6 +158,25 @@ def test_filled_order_must_have_no_remaining_quantity() -> None:
 
     with pytest.raises(ValueError, match="filled order must have no remaining quantity"):
         replace(order, filled_quantity=Decimal("0.0005"))
+
+
+def test_non_flat_position_requires_positive_quantity() -> None:
+    for side in [PositionSide.LONG, PositionSide.SHORT]:
+        with pytest.raises(ValueError, match="non-flat position quantity must be positive"):
+            Position(
+                symbol="BTC-USDT",
+                side=side,
+                quantity=Decimal("0"),
+                entry_price=Decimal("100000"),
+                mark_price=Decimal("101000"),
+                leverage=Decimal("1"),
+                margin_mode=MarginMode.ISOLATED,
+                position_mode=PositionMode.ONE_WAY,
+                maintenance_margin=Decimal("0"),
+                liquidation_price=None,
+                updated_at=NOW,
+                metadata={},
+            )
 
 
 def test_fee_funding_pnl_and_position_validate_decimal_values() -> None:
