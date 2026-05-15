@@ -7,13 +7,18 @@ from decimal import Decimal
 
 from trading_system.core.domain.enums import (
     ExecutionVenue,
+    MarginMode,
     OrderSide,
+    OrderStatus,
     OrderType,
+    PositionMode,
+    PositionSide,
     TimeInForce,
     TradingMode,
 )
 from trading_system.core.domain.validation import (
     MetadataValue,
+    ensure_non_negative_decimal,
     ensure_positive_decimal,
     ensure_timezone_aware,
     metadata_without_exchange_payload,
@@ -88,3 +93,134 @@ class OrderIntent:
         mode_name = self.trading_mode.value
         venue_name = expected_venue.value
         raise ValueError(f"{mode_name} mode must use {venue_name} execution venue")
+
+
+@dataclass(frozen=True, slots=True)
+class Order:
+    order_id: str
+    intent_id: str
+    symbol: str
+    side: OrderSide
+    order_type: OrderType
+    status: OrderStatus
+    quantity: Decimal
+    filled_quantity: Decimal
+    limit_price: Decimal | None
+    time_in_force: TimeInForce
+    reduce_only: bool
+    close_only: bool
+    post_only: bool
+    created_at: datetime
+    updated_at: datetime
+    metadata: Mapping[str, MetadataValue] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        ensure_positive_decimal("quantity", self.quantity)
+        ensure_non_negative_decimal("filled_quantity", self.filled_quantity)
+        if self.filled_quantity > self.quantity:
+            raise ValueError("filled_quantity must not exceed quantity")
+        if self.limit_price is not None:
+            ensure_positive_decimal("limit_price", self.limit_price)
+        ensure_timezone_aware("created_at", self.created_at)
+        ensure_timezone_aware("updated_at", self.updated_at)
+        object.__setattr__(self, "metadata", metadata_without_exchange_payload(self.metadata))
+
+    @property
+    def remaining_quantity(self) -> Decimal:
+        return self.quantity - self.filled_quantity
+
+
+@dataclass(frozen=True, slots=True)
+class Fill:
+    fill_id: str
+    order_id: str
+    symbol: str
+    side: OrderSide
+    quantity: Decimal
+    price: Decimal
+    fee: Decimal
+    filled_at: datetime
+    metadata: Mapping[str, MetadataValue] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        ensure_positive_decimal("quantity", self.quantity)
+        ensure_positive_decimal("price", self.price)
+        ensure_non_negative_decimal("fee", self.fee)
+        ensure_timezone_aware("filled_at", self.filled_at)
+        object.__setattr__(self, "metadata", metadata_without_exchange_payload(self.metadata))
+
+    @property
+    def notional(self) -> Decimal:
+        return self.quantity * self.price
+
+
+@dataclass(frozen=True, slots=True)
+class Fee:
+    symbol: str
+    amount: Decimal
+    asset: str
+    occurred_at: datetime
+    metadata: Mapping[str, MetadataValue] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        ensure_non_negative_decimal("amount", self.amount)
+        ensure_timezone_aware("occurred_at", self.occurred_at)
+        object.__setattr__(self, "metadata", metadata_without_exchange_payload(self.metadata))
+
+
+@dataclass(frozen=True, slots=True)
+class FundingFee:
+    symbol: str
+    amount: Decimal
+    asset: str
+    funding_timestamp: datetime
+    occurred_at: datetime
+    metadata: Mapping[str, MetadataValue] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        ensure_timezone_aware("funding_timestamp", self.funding_timestamp)
+        ensure_timezone_aware("occurred_at", self.occurred_at)
+        object.__setattr__(self, "metadata", metadata_without_exchange_payload(self.metadata))
+
+
+@dataclass(frozen=True, slots=True)
+class PnL:
+    symbol: str
+    realized: Decimal
+    unrealized: Decimal
+    fees: Decimal
+    funding: Decimal
+    updated_at: datetime
+    metadata: Mapping[str, MetadataValue] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        ensure_non_negative_decimal("fees", self.fees)
+        ensure_timezone_aware("updated_at", self.updated_at)
+        object.__setattr__(self, "metadata", metadata_without_exchange_payload(self.metadata))
+
+
+@dataclass(frozen=True, slots=True)
+class Position:
+    symbol: str
+    side: PositionSide
+    quantity: Decimal
+    entry_price: Decimal
+    mark_price: Decimal
+    leverage: Decimal
+    margin_mode: MarginMode
+    position_mode: PositionMode
+    maintenance_margin: Decimal
+    liquidation_price: Decimal | None
+    updated_at: datetime
+    metadata: Mapping[str, MetadataValue] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        ensure_non_negative_decimal("quantity", self.quantity)
+        ensure_positive_decimal("entry_price", self.entry_price)
+        ensure_positive_decimal("mark_price", self.mark_price)
+        ensure_positive_decimal("leverage", self.leverage)
+        ensure_non_negative_decimal("maintenance_margin", self.maintenance_margin)
+        if self.liquidation_price is not None:
+            ensure_positive_decimal("liquidation_price", self.liquidation_price)
+        ensure_timezone_aware("updated_at", self.updated_at)
+        object.__setattr__(self, "metadata", metadata_without_exchange_payload(self.metadata))

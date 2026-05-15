@@ -1,0 +1,101 @@
+from dataclasses import replace
+from datetime import UTC, datetime
+from decimal import Decimal
+
+import pytest
+
+from trading_system.core.domain import (
+    Fee,
+    Fill,
+    FundingFee,
+    MarginMode,
+    Order,
+    OrderSide,
+    OrderStatus,
+    OrderType,
+    PnL,
+    Position,
+    PositionMode,
+    PositionSide,
+    TimeInForce,
+)
+
+NOW = datetime(2026, 5, 15, 12, 0, tzinfo=UTC)
+
+
+def test_order_and_fill_validate_positive_values() -> None:
+    order = Order(
+        order_id="order-1",
+        intent_id="intent-1",
+        symbol="BTC-USDT",
+        side=OrderSide.BUY,
+        order_type=OrderType.LIMIT,
+        status=OrderStatus.ACCEPTED,
+        quantity=Decimal("0.001"),
+        filled_quantity=Decimal("0"),
+        limit_price=Decimal("100000"),
+        time_in_force=TimeInForce.POST_ONLY,
+        reduce_only=False,
+        close_only=False,
+        post_only=True,
+        created_at=NOW,
+        updated_at=NOW,
+        metadata={},
+    )
+    assert order.remaining_quantity == Decimal("0.001")
+
+    with pytest.raises(ValueError, match="quantity must be positive"):
+        replace(order, quantity=Decimal("0"))
+
+    fill = Fill(
+        fill_id="fill-1",
+        order_id="order-1",
+        symbol="BTC-USDT",
+        side=OrderSide.BUY,
+        quantity=Decimal("0.001"),
+        price=Decimal("100000"),
+        fee=Decimal("0.10"),
+        filled_at=NOW,
+        metadata={},
+    )
+    assert fill.notional == Decimal("100.000")
+
+
+def test_fee_funding_pnl_and_position_validate_decimal_values() -> None:
+    fee = Fee(symbol="BTC-USDT", amount=Decimal("0.10"), asset="USDT", occurred_at=NOW, metadata={})
+    funding = FundingFee(
+        symbol="BTC-USDT",
+        amount=Decimal("-0.05"),
+        asset="USDT",
+        funding_timestamp=NOW,
+        occurred_at=NOW,
+        metadata={},
+    )
+    pnl = PnL(
+        symbol="BTC-USDT",
+        realized=Decimal("1.20"),
+        unrealized=Decimal("0.50"),
+        fees=Decimal("0.10"),
+        funding=Decimal("-0.05"),
+        updated_at=NOW,
+        metadata={},
+    )
+    position = Position(
+        symbol="BTC-USDT",
+        side=PositionSide.LONG,
+        quantity=Decimal("0.001"),
+        entry_price=Decimal("100000"),
+        mark_price=Decimal("101000"),
+        leverage=Decimal("1"),
+        margin_mode=MarginMode.ISOLATED,
+        position_mode=PositionMode.ONE_WAY,
+        maintenance_margin=Decimal("5"),
+        liquidation_price=None,
+        updated_at=NOW,
+        metadata={},
+    )
+
+    assert fee.amount == Decimal("0.10")
+    assert funding.funding_timestamp == NOW
+    assert pnl.unrealized == Decimal("0.50")
+    assert position.maintenance_margin == Decimal("5")

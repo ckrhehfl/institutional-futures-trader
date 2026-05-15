@@ -12,6 +12,7 @@ from trading_system.core.domain.enums import (
     TradingMode,
 )
 from trading_system.core.domain.models import OrderIntent, Signal
+from trading_system.core.domain.models import Fee, Fill, FundingFee, Order, PnL, Position
 
 __all__ = [
     "ExecutionVenue",
@@ -25,4 +26,10 @@ __all__ = [
     "TradingMode",
     "OrderIntent",
     "Signal",
+    "Fee",
+    "Fill",
+    "FundingFee",
+    "Order",
+    "PnL",
+    "Position",
 ]
