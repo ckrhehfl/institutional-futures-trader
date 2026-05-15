@@ -287,6 +287,14 @@ def test_partially_filled_order_requires_partial_quantity() -> None:
         with pytest.raises(ValueError, match="partially filled order requires"):
             replace(order, filled_quantity=filled_quantity)
 
+    for filled_quantity in [Decimal("0"), Decimal("0.001")]:
+        with pytest.raises(ValueError, match="partially filled order requires"):
+            replace(
+                order,
+                status=OrderStatus.PARTIALLY_FILLED.value,
+                filled_quantity=filled_quantity,
+            )
+
 
 def test_order_updated_at_must_not_predate_created_at() -> None:
     with pytest.raises(ValueError, match="updated_at must not predate created_at"):
@@ -327,6 +335,39 @@ def test_non_flat_position_requires_positive_quantity() -> None:
                 updated_at=NOW,
                 metadata={},
             )
+
+
+def test_raw_flat_position_side_follows_flat_validation() -> None:
+    Position(
+        symbol="BTC-USDT",
+        side=PositionSide.FLAT.value,
+        quantity=Decimal("0"),
+        entry_price=None,
+        mark_price=Decimal("101000"),
+        leverage=Decimal("1"),
+        margin_mode=MarginMode.ISOLATED,
+        position_mode=PositionMode.ONE_WAY,
+        maintenance_margin=Decimal("0"),
+        liquidation_price=None,
+        updated_at=NOW,
+        metadata={},
+    )
+
+    with pytest.raises(ValueError, match="flat position quantity must be zero"):
+        Position(
+            symbol="BTC-USDT",
+            side=PositionSide.FLAT.value,
+            quantity=Decimal("0.001"),
+            entry_price=None,
+            mark_price=Decimal("101000"),
+            leverage=Decimal("1"),
+            margin_mode=MarginMode.ISOLATED,
+            position_mode=PositionMode.ONE_WAY,
+            maintenance_margin=Decimal("0"),
+            liquidation_price=None,
+            updated_at=NOW,
+            metadata={},
+        )
 
 
 def test_fee_funding_pnl_and_position_validate_decimal_values() -> None:

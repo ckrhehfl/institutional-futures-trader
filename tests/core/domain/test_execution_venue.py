@@ -56,3 +56,15 @@ def test_paper_demo_backtest_venues_are_separate() -> None:
 
     with pytest.raises(ValueError, match="live mode is not supported by domain v0"):
         make_intent(TradingMode.LIVE, ExecutionVenue.LIVE)
+
+
+def test_raw_config_mode_and_venue_values_follow_same_boundary() -> None:
+    intent = make_intent(TradingMode.PAPER.value, ExecutionVenue.PAPER.value)
+    assert intent.trading_mode == TradingMode.PAPER
+    assert intent.execution_venue == ExecutionVenue.PAPER
+
+    with pytest.raises(ValueError, match="live mode is not supported by domain v0"):
+        make_intent(TradingMode.LIVE.value, ExecutionVenue.LIVE.value)
+
+    with pytest.raises(ValueError, match="paper mode must use paper execution venue"):
+        make_intent(TradingMode.PAPER.value, ExecutionVenue.LIVE.value)

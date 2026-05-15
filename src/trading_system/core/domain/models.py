@@ -110,16 +110,18 @@ class OrderIntent:
         object.__setattr__(self, "metadata", safe_metadata(self.metadata))
 
     def _ensure_mode_matches_venue(self) -> None:
-        if self.trading_mode is TradingMode.LIVE:
+        trading_mode = TradingMode(self.trading_mode)
+        execution_venue = ExecutionVenue(self.execution_venue)
+        if trading_mode == TradingMode.LIVE:
             raise ValueError("live mode is not supported by domain v0")
         expected_venue = {
             TradingMode.BACKTEST: ExecutionVenue.BACKTEST,
             TradingMode.PAPER: ExecutionVenue.PAPER,
             TradingMode.DEMO: ExecutionVenue.DEMO,
-        }[self.trading_mode]
-        if self.execution_venue is expected_venue:
+        }[trading_mode]
+        if execution_venue == expected_venue:
             return
-        mode_name = self.trading_mode.value
+        mode_name = trading_mode.value
         venue_name = expected_venue.value
         raise ValueError(f"{mode_name} mode must use {venue_name} execution venue")
 
@@ -144,17 +146,18 @@ class Order:
     metadata: Mapping[str, MetadataValue] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
+        status = OrderStatus(self.status)
         ensure_positive_decimal("quantity", self.quantity)
         ensure_non_negative_decimal("filled_quantity", self.filled_quantity)
         if self.filled_quantity > self.quantity:
             raise ValueError("filled_quantity must not exceed quantity")
-        if self.status in PRE_EXECUTION_STATUSES and self.filled_quantity != Decimal("0"):
+        if status in PRE_EXECUTION_STATUSES and self.filled_quantity != Decimal("0"):
             raise ValueError("pre-execution order states must have zero fills")
-        if self.status is OrderStatus.PARTIALLY_FILLED and not (
+        if status == OrderStatus.PARTIALLY_FILLED and not (
             Decimal("0") < self.filled_quantity < self.quantity
         ):
             raise ValueError("partially filled order requires partial filled quantity")
-        if self.status in TERMINAL_FILLED_STATUSES and self.filled_quantity != self.quantity:
+        if status in TERMINAL_FILLED_STATUSES and self.filled_quantity != self.quantity:
             raise ValueError("filled order must have no remaining quantity")
         if self.order_type in UNSUPPORTED_STOP_ORDER_TYPES:
             raise ValueError("stop order types are not supported until trigger_price is modeled")
@@ -272,8 +275,9 @@ class Position:
     metadata: Mapping[str, MetadataValue] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
+        side = PositionSide(self.side)
         ensure_non_negative_decimal("quantity", self.quantity)
-        if self.side is PositionSide.FLAT:
+        if side == PositionSide.FLAT:
             if self.quantity != Decimal("0"):
                 raise ValueError("flat position quantity must be zero")
             if self.entry_price not in {None, Decimal("0")}:
