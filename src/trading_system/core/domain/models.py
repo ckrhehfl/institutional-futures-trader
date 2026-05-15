@@ -85,23 +85,28 @@ class OrderIntent:
     metadata: Mapping[str, MetadataValue] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
+        OrderSide(self.side)
+        order_type = OrderType(self.order_type)
+        time_in_force = TimeInForce(self.time_in_force)
+        TradingMode(self.trading_mode)
+        ExecutionVenue(self.execution_venue)
         if self.created_by not in ORDER_INTENT_CREATORS:
             raise ValueError("OrderIntent creator must be an intent builder")
         ensure_positive_decimal("quantity", self.quantity)
         ensure_positive_decimal("leverage", self.leverage)
-        if self.order_type in UNSUPPORTED_STOP_ORDER_TYPES:
+        if order_type in UNSUPPORTED_STOP_ORDER_TYPES:
             raise ValueError("stop order types are not supported until trigger_price is modeled")
-        if self.order_type in LIMIT_PRICE_ORDER_TYPES and self.limit_price is None:
+        if order_type in LIMIT_PRICE_ORDER_TYPES and self.limit_price is None:
             raise ValueError("limit_price is required for priced order types")
-        if self.order_type not in LIMIT_PRICE_ORDER_TYPES and self.limit_price is not None:
+        if order_type not in LIMIT_PRICE_ORDER_TYPES and self.limit_price is not None:
             raise ValueError("limit_price is only valid for limit orders")
-        if self.order_type not in LIMIT_PRICE_ORDER_TYPES and (
-            self.time_in_force == TimeInForce.POST_ONLY or self.post_only
+        if order_type not in LIMIT_PRICE_ORDER_TYPES and (
+            time_in_force == TimeInForce.POST_ONLY or self.post_only
         ):
             raise ValueError("post-only is only valid for limit orders")
-        if self.time_in_force == TimeInForce.POST_ONLY and not self.post_only:
+        if time_in_force == TimeInForce.POST_ONLY and not self.post_only:
             raise ValueError("post-only fields must agree")
-        if self.post_only and self.time_in_force != TimeInForce.POST_ONLY:
+        if self.post_only and time_in_force != TimeInForce.POST_ONLY:
             raise ValueError("post-only limit orders must use post-only time in force")
         if self.limit_price is not None:
             ensure_positive_decimal("limit_price", self.limit_price)
@@ -146,7 +151,10 @@ class Order:
     metadata: Mapping[str, MetadataValue] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
+        OrderSide(self.side)
+        order_type = OrderType(self.order_type)
         status = OrderStatus(self.status)
+        time_in_force = TimeInForce(self.time_in_force)
         ensure_positive_decimal("quantity", self.quantity)
         ensure_non_negative_decimal("filled_quantity", self.filled_quantity)
         if self.filled_quantity > self.quantity:
@@ -159,19 +167,19 @@ class Order:
             raise ValueError("partially filled order requires partial filled quantity")
         if status in TERMINAL_FILLED_STATUSES and self.filled_quantity != self.quantity:
             raise ValueError("filled order must have no remaining quantity")
-        if self.order_type in UNSUPPORTED_STOP_ORDER_TYPES:
+        if order_type in UNSUPPORTED_STOP_ORDER_TYPES:
             raise ValueError("stop order types are not supported until trigger_price is modeled")
-        if self.order_type in LIMIT_PRICE_ORDER_TYPES and self.limit_price is None:
+        if order_type in LIMIT_PRICE_ORDER_TYPES and self.limit_price is None:
             raise ValueError("limit_price is required for priced order types")
-        if self.order_type not in LIMIT_PRICE_ORDER_TYPES and self.limit_price is not None:
+        if order_type not in LIMIT_PRICE_ORDER_TYPES and self.limit_price is not None:
             raise ValueError("limit_price is only valid for limit orders")
-        if self.order_type not in LIMIT_PRICE_ORDER_TYPES and (
-            self.time_in_force == TimeInForce.POST_ONLY or self.post_only
+        if order_type not in LIMIT_PRICE_ORDER_TYPES and (
+            time_in_force == TimeInForce.POST_ONLY or self.post_only
         ):
             raise ValueError("post-only is only valid for limit orders")
-        if self.time_in_force == TimeInForce.POST_ONLY and not self.post_only:
+        if time_in_force == TimeInForce.POST_ONLY and not self.post_only:
             raise ValueError("post-only fields must agree")
-        if self.post_only and self.time_in_force != TimeInForce.POST_ONLY:
+        if self.post_only and time_in_force != TimeInForce.POST_ONLY:
             raise ValueError("post-only limit orders must use post-only time in force")
         if self.limit_price is not None:
             ensure_positive_decimal("limit_price", self.limit_price)
@@ -199,6 +207,7 @@ class Fill:
     metadata: Mapping[str, MetadataValue] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
+        OrderSide(self.side)
         ensure_positive_decimal("quantity", self.quantity)
         ensure_positive_decimal("price", self.price)
         ensure_non_negative_decimal("fee", self.fee)
@@ -276,6 +285,8 @@ class Position:
 
     def __post_init__(self) -> None:
         side = PositionSide(self.side)
+        MarginMode(self.margin_mode)
+        PositionMode(self.position_mode)
         ensure_non_negative_decimal("quantity", self.quantity)
         if side == PositionSide.FLAT:
             if self.quantity != Decimal("0"):
@@ -307,6 +318,7 @@ class RiskDecision:
     metadata: Mapping[str, MetadataValue] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
+        RiskDecisionStatus(self.status)
         ensure_timezone_aware("decided_at", self.decided_at)
         object.__setattr__(self, "metadata", safe_metadata(self.metadata))
 
@@ -324,5 +336,6 @@ class ReconciliationEvent:
     metadata: Mapping[str, MetadataValue] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
+        ReconciliationStatus(self.status)
         ensure_timezone_aware("occurred_at", self.occurred_at)
         object.__setattr__(self, "metadata", safe_metadata(self.metadata))

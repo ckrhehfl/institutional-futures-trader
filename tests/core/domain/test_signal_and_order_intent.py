@@ -86,6 +86,39 @@ def test_order_intent_rejects_strategy_or_ai_creator() -> None:
             )
 
 
+def test_order_intent_rejects_unknown_runtime_enum_values() -> None:
+    valid_args = {
+        "intent_id": "intent-1",
+        "source_signal_id": "sig-1",
+        "created_by": "order_intent_builder",
+        "symbol": "BTC-USDT",
+        "side": OrderSide.BUY,
+        "order_type": OrderType.MARKET,
+        "quantity": Decimal("0.001"),
+        "limit_price": None,
+        "time_in_force": TimeInForce.IOC,
+        "trading_mode": TradingMode.PAPER,
+        "execution_venue": ExecutionVenue.PAPER,
+        "leverage": Decimal("1"),
+        "reduce_only": False,
+        "close_only": False,
+        "post_only": False,
+        "created_at": NOW,
+        "metadata": {},
+    }
+
+    for field_name, invalid_value in [
+        ("side", "bid"),
+        ("order_type", "iceberg"),
+        ("time_in_force", "maker_only"),
+        ("trading_mode", "production"),
+        ("execution_venue", "real_money"),
+    ]:
+        args = valid_args | {field_name: invalid_value}
+        with pytest.raises(ValueError):
+            OrderIntent(**args)
+
+
 def test_priced_order_intent_requires_limit_price() -> None:
     with pytest.raises(ValueError, match="limit_price is required"):
         OrderIntent(

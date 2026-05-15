@@ -114,6 +114,37 @@ def test_order_rejects_missing_limit_price_for_priced_orders() -> None:
         replace(order, limit_price=None)
 
 
+def test_order_rejects_unknown_runtime_enum_values() -> None:
+    valid_args = {
+        "order_id": "order-1",
+        "intent_id": "intent-1",
+        "symbol": "BTC-USDT",
+        "side": OrderSide.BUY,
+        "order_type": OrderType.MARKET,
+        "status": OrderStatus.SUBMITTED,
+        "quantity": Decimal("0.001"),
+        "filled_quantity": Decimal("0"),
+        "limit_price": None,
+        "time_in_force": TimeInForce.IOC,
+        "reduce_only": False,
+        "close_only": False,
+        "post_only": False,
+        "created_at": NOW,
+        "updated_at": NOW,
+        "metadata": {},
+    }
+
+    for field_name, invalid_value in [
+        ("side", "bid"),
+        ("order_type", "iceberg"),
+        ("status", "partly_done"),
+        ("time_in_force", "maker_only"),
+    ]:
+        args = valid_args | {field_name: invalid_value}
+        with pytest.raises(ValueError):
+            Order(**args)
+
+
 def test_market_order_rejects_limit_price() -> None:
     with pytest.raises(ValueError, match="limit_price is only valid for limit orders"):
         Order(
@@ -335,6 +366,32 @@ def test_non_flat_position_requires_positive_quantity() -> None:
                 updated_at=NOW,
                 metadata={},
             )
+
+
+def test_position_rejects_unknown_runtime_enum_values() -> None:
+    valid_args = {
+        "symbol": "BTC-USDT",
+        "side": PositionSide.LONG,
+        "quantity": Decimal("0.001"),
+        "entry_price": Decimal("100000"),
+        "mark_price": Decimal("101000"),
+        "leverage": Decimal("1"),
+        "margin_mode": MarginMode.ISOLATED,
+        "position_mode": PositionMode.ONE_WAY,
+        "maintenance_margin": Decimal("0"),
+        "liquidation_price": None,
+        "updated_at": NOW,
+        "metadata": {},
+    }
+
+    for field_name, invalid_value in [
+        ("side", "sideways"),
+        ("margin_mode", "portfolio"),
+        ("position_mode", "bad"),
+    ]:
+        args = valid_args | {field_name: invalid_value}
+        with pytest.raises(ValueError):
+            Position(**args)
 
 
 def test_raw_flat_position_side_follows_flat_validation() -> None:

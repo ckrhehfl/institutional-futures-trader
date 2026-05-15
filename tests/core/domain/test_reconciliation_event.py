@@ -27,6 +27,18 @@ def test_risk_decision_has_no_order_execution_behavior() -> None:
     assert not hasattr(decision, "execute")
 
 
+def test_risk_decision_rejects_unknown_status() -> None:
+    with pytest.raises(ValueError):
+        RiskDecision(
+            decision_id="risk-1",
+            intent_id="intent-1",
+            status="approvedd",
+            reason="bad status",
+            decided_at=NOW,
+            metadata={},
+        )
+
+
 def test_reconciliation_event_records_drift_without_raw_payload() -> None:
     event = ReconciliationEvent(
         event_id="recon-1",
@@ -55,4 +67,19 @@ def test_reconciliation_event_records_drift_without_raw_payload() -> None:
             drift_summary="bad metadata",
             requires_manual_review=True,
             metadata={"bingx": "not allowed"},
+        )
+
+
+def test_reconciliation_event_rejects_unknown_status() -> None:
+    with pytest.raises(ValueError):
+        ReconciliationEvent(
+            event_id="recon-1",
+            status="almost_matched",
+            symbol="BTC-USDT",
+            occurred_at=NOW,
+            internal_state_ref="internal-position-1",
+            exchange_snapshot_ref="snapshot-1",
+            drift_summary="bad status",
+            requires_manual_review=True,
+            metadata={},
         )
