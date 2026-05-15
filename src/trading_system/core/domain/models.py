@@ -31,6 +31,7 @@ ORDER_INTENT_CREATORS = frozenset(
 )
 LIMIT_PRICE_ORDER_TYPES = frozenset({OrderType.LIMIT})
 UNSUPPORTED_STOP_ORDER_TYPES = frozenset({OrderType.STOP, OrderType.STOP_LIMIT})
+TERMINAL_FILLED_STATUSES = frozenset({OrderStatus.FILLED})
 
 
 @dataclass(frozen=True, slots=True)
@@ -82,6 +83,10 @@ class OrderIntent:
             raise ValueError("stop order types are not supported until trigger_price is modeled")
         if self.order_type in LIMIT_PRICE_ORDER_TYPES and self.limit_price is None:
             raise ValueError("limit_price is required for priced order types")
+        if self.order_type not in LIMIT_PRICE_ORDER_TYPES and (
+            self.time_in_force is TimeInForce.POST_ONLY or self.post_only
+        ):
+            raise ValueError("post-only is only valid for limit orders")
         if self.limit_price is not None:
             ensure_positive_decimal("limit_price", self.limit_price)
         ensure_timezone_aware("created_at", self.created_at)
@@ -127,6 +132,8 @@ class Order:
         ensure_non_negative_decimal("filled_quantity", self.filled_quantity)
         if self.filled_quantity > self.quantity:
             raise ValueError("filled_quantity must not exceed quantity")
+        if self.status in TERMINAL_FILLED_STATUSES and self.filled_quantity != self.quantity:
+            raise ValueError("filled order must have no remaining quantity")
         if self.order_type in UNSUPPORTED_STOP_ORDER_TYPES:
             raise ValueError("stop order types are not supported until trigger_price is modeled")
         if self.order_type in LIMIT_PRICE_ORDER_TYPES and self.limit_price is None:

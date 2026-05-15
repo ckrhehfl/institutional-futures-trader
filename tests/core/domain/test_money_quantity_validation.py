@@ -108,6 +108,32 @@ def test_order_rejects_stop_types_until_trigger_price_exists() -> None:
             )
 
 
+def test_filled_order_must_have_no_remaining_quantity() -> None:
+    order = Order(
+        order_id="order-1",
+        intent_id="intent-1",
+        symbol="BTC-USDT",
+        side=OrderSide.BUY,
+        order_type=OrderType.LIMIT,
+        status=OrderStatus.FILLED,
+        quantity=Decimal("0.001"),
+        filled_quantity=Decimal("0.001"),
+        limit_price=Decimal("100000"),
+        time_in_force=TimeInForce.GTC,
+        reduce_only=False,
+        close_only=False,
+        post_only=False,
+        created_at=NOW,
+        updated_at=NOW,
+        metadata={},
+    )
+
+    assert order.remaining_quantity == Decimal("0.000")
+
+    with pytest.raises(ValueError, match="filled order must have no remaining quantity"):
+        replace(order, filled_quantity=Decimal("0.0005"))
+
+
 def test_fee_funding_pnl_and_position_validate_decimal_values() -> None:
     fee = Fee(symbol="BTC-USDT", amount=Decimal("0.10"), asset="USDT", occurred_at=NOW, metadata={})
     funding = FundingFee(

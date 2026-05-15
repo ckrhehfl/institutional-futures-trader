@@ -131,3 +131,30 @@ def test_stop_order_intents_are_rejected_until_trigger_price_exists() -> None:
                 created_at=NOW,
                 metadata={},
             )
+
+
+def test_market_order_intent_rejects_post_only_semantics() -> None:
+    for time_in_force, post_only in [
+        (TimeInForce.POST_ONLY, False),
+        (TimeInForce.IOC, True),
+    ]:
+        with pytest.raises(ValueError, match="post-only is only valid for limit orders"):
+            OrderIntent(
+                intent_id=f"intent-market-{time_in_force.value}-{post_only}",
+                source_signal_id="sig-1",
+                created_by="order_intent_builder",
+                symbol="BTC-USDT",
+                side=OrderSide.BUY,
+                order_type=OrderType.MARKET,
+                quantity=Decimal("0.001"),
+                limit_price=None,
+                time_in_force=time_in_force,
+                trading_mode=TradingMode.PAPER,
+                execution_venue=ExecutionVenue.PAPER,
+                leverage=Decimal("1"),
+                reduce_only=False,
+                close_only=False,
+                post_only=post_only,
+                created_at=NOW,
+                metadata={},
+            )
