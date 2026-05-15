@@ -25,12 +25,16 @@ FORBIDDEN_METADATA_KEYS = frozenset(
 
 
 def ensure_positive_decimal(name: str, value: Decimal) -> Decimal:
+    if not value.is_finite():
+        raise ValueError(f"{name} must be finite")
     if value <= Decimal("0"):
         raise ValueError(f"{name} must be positive")
     return value
 
 
 def ensure_non_negative_decimal(name: str, value: Decimal) -> Decimal:
+    if not value.is_finite():
+        raise ValueError(f"{name} must be finite")
     if value < Decimal("0"):
         raise ValueError(f"{name} must be non-negative")
     return value

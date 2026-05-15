@@ -38,6 +38,7 @@ PRE_EXECUTION_STATUSES = frozenset(
         OrderStatus.PENDING_RISK,
         OrderStatus.RISK_REJECTED,
         OrderStatus.RISK_APPROVED,
+        OrderStatus.ACCEPTED,
     }
 )
 

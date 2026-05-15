@@ -67,6 +67,7 @@ def test_pre_execution_order_states_reject_filled_quantity() -> None:
         OrderStatus.PENDING_RISK,
         OrderStatus.RISK_REJECTED,
         OrderStatus.RISK_APPROVED,
+        OrderStatus.ACCEPTED,
     ]:
         with pytest.raises(ValueError, match="pre-execution order states must have zero fills"):
             Order(
