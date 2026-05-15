@@ -76,6 +76,8 @@ class OrderIntent:
             raise ValueError("OrderIntent creator must be an intent builder")
         ensure_positive_decimal("quantity", self.quantity)
         ensure_positive_decimal("leverage", self.leverage)
+        if self.order_type in {OrderType.LIMIT, OrderType.STOP_LIMIT} and self.limit_price is None:
+            raise ValueError("limit_price is required for priced order types")
         if self.limit_price is not None:
             ensure_positive_decimal("limit_price", self.limit_price)
         ensure_timezone_aware("created_at", self.created_at)
@@ -206,7 +208,7 @@ class Position:
     symbol: str
     side: PositionSide
     quantity: Decimal
-    entry_price: Decimal
+    entry_price: Decimal | None
     mark_price: Decimal
     leverage: Decimal
     margin_mode: MarginMode
@@ -218,7 +220,15 @@ class Position:
 
     def __post_init__(self) -> None:
         ensure_non_negative_decimal("quantity", self.quantity)
-        ensure_positive_decimal("entry_price", self.entry_price)
+        if self.side is PositionSide.FLAT:
+            if self.quantity != Decimal("0"):
+                raise ValueError("flat position quantity must be zero")
+            if self.entry_price not in {None, Decimal("0")}:
+                raise ValueError("flat position entry_price must be absent or zero")
+        elif self.entry_price is None:
+            raise ValueError("entry_price is required for open positions")
+        else:
+            ensure_positive_decimal("entry_price", self.entry_price)
         ensure_positive_decimal("mark_price", self.mark_price)
         ensure_positive_decimal("leverage", self.leverage)
         ensure_non_negative_decimal("maintenance_margin", self.maintenance_margin)

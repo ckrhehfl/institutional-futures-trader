@@ -41,6 +41,8 @@ def test_reconciliation_event_records_drift_without_raw_payload() -> None:
     )
 
     assert event.requires_manual_review is True
+    with pytest.raises(TypeError):
+        event.metadata["action"] = "mutated"  # type: ignore[index]
 
     with pytest.raises(ValueError, match="metadata must not contain exchange-specific"):
         ReconciliationEvent(

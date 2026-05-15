@@ -84,3 +84,27 @@ def test_order_intent_rejects_strategy_or_ai_creator() -> None:
                 created_at=NOW,
                 metadata={},
             )
+
+
+def test_priced_order_intent_requires_limit_price() -> None:
+    for order_type in [OrderType.LIMIT, OrderType.STOP_LIMIT]:
+        with pytest.raises(ValueError, match="limit_price is required"):
+            OrderIntent(
+                intent_id=f"intent-{order_type.value}",
+                source_signal_id="sig-1",
+                created_by="order_intent_builder",
+                symbol="BTC-USDT",
+                side=OrderSide.BUY,
+                order_type=order_type,
+                quantity=Decimal("0.001"),
+                limit_price=None,
+                time_in_force=TimeInForce.GTC,
+                trading_mode=TradingMode.PAPER,
+                execution_venue=ExecutionVenue.PAPER,
+                leverage=Decimal("1"),
+                reduce_only=False,
+                close_only=False,
+                post_only=False,
+                created_at=NOW,
+                metadata={},
+            )

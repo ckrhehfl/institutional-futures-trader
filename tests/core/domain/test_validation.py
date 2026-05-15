@@ -1,5 +1,6 @@
 from datetime import UTC, datetime
 from decimal import Decimal
+from types import MappingProxyType
 
 import pytest
 
@@ -33,7 +34,9 @@ def test_timezone_validation_requires_aware_datetime() -> None:
 
 def test_metadata_rejects_exchange_specific_payloads() -> None:
     assert "bingx" in FORBIDDEN_METADATA_KEYS
-    assert metadata_without_exchange_payload({"source": "paper"}) == {"source": "paper"}
+    metadata = metadata_without_exchange_payload({"source": "paper"})
+    assert metadata == {"source": "paper"}
+    assert isinstance(metadata, MappingProxyType)
 
     for key in ["raw", "payload", "response", "bingx", "exchange_response", "api_key"]:
         with pytest.raises(ValueError, match="metadata must not contain exchange-specific"):

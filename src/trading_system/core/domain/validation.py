@@ -3,6 +3,7 @@
 from collections.abc import Mapping
 from datetime import datetime
 from decimal import Decimal
+from types import MappingProxyType
 
 MetadataValue = str | int | Decimal | bool
 
@@ -42,12 +43,12 @@ def ensure_timezone_aware(name: str, value: datetime) -> datetime:
 
 def metadata_without_exchange_payload(
     metadata: Mapping[str, MetadataValue],
-) -> dict[str, MetadataValue]:
+) -> Mapping[str, MetadataValue]:
     forbidden_keys = FORBIDDEN_METADATA_KEYS.intersection(key.lower() for key in metadata)
     if forbidden_keys:
         raise ValueError("metadata must not contain exchange-specific payload keys")
-    return dict(metadata)
+    return MappingProxyType(dict(metadata))
 
 
-def safe_metadata(metadata: Mapping[str, MetadataValue]) -> dict[str, MetadataValue]:
+def safe_metadata(metadata: Mapping[str, MetadataValue]) -> Mapping[str, MetadataValue]:
     return metadata_without_exchange_payload(metadata)

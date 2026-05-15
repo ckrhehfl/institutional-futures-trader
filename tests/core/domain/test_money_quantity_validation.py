@@ -99,3 +99,27 @@ def test_fee_funding_pnl_and_position_validate_decimal_values() -> None:
     assert funding.funding_timestamp == NOW
     assert pnl.unrealized == Decimal("0.50")
     assert position.maintenance_margin == Decimal("5")
+
+
+def test_flat_position_can_represent_zero_exposure() -> None:
+    flat_without_entry = Position(
+        symbol="BTC-USDT",
+        side=PositionSide.FLAT,
+        quantity=Decimal("0"),
+        entry_price=None,
+        mark_price=Decimal("101000"),
+        leverage=Decimal("1"),
+        margin_mode=MarginMode.ISOLATED,
+        position_mode=PositionMode.ONE_WAY,
+        maintenance_margin=Decimal("0"),
+        liquidation_price=None,
+        updated_at=NOW,
+        metadata={},
+    )
+    flat_with_zero_entry = replace(flat_without_entry, entry_price=Decimal("0"))
+
+    assert flat_without_entry.entry_price is None
+    assert flat_with_zero_entry.entry_price == Decimal("0")
+
+    with pytest.raises(ValueError, match="flat position quantity must be zero"):
+        replace(flat_without_entry, quantity=Decimal("0.001"))
