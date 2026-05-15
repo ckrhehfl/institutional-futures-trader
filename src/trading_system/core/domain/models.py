@@ -13,6 +13,8 @@ from trading_system.core.domain.enums import (
     OrderType,
     PositionMode,
     PositionSide,
+    ReconciliationStatus,
+    RiskDecisionStatus,
     TimeInForce,
     TradingMode,
 )
@@ -223,4 +225,35 @@ class Position:
         if self.liquidation_price is not None:
             ensure_positive_decimal("liquidation_price", self.liquidation_price)
         ensure_timezone_aware("updated_at", self.updated_at)
+        object.__setattr__(self, "metadata", metadata_without_exchange_payload(self.metadata))
+
+
+@dataclass(frozen=True, slots=True)
+class RiskDecision:
+    decision_id: str
+    intent_id: str
+    status: RiskDecisionStatus
+    reason: str
+    decided_at: datetime
+    metadata: Mapping[str, MetadataValue] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        ensure_timezone_aware("decided_at", self.decided_at)
+        object.__setattr__(self, "metadata", metadata_without_exchange_payload(self.metadata))
+
+
+@dataclass(frozen=True, slots=True)
+class ReconciliationEvent:
+    event_id: str
+    status: ReconciliationStatus
+    symbol: str
+    occurred_at: datetime
+    internal_state_ref: str
+    exchange_snapshot_ref: str
+    drift_summary: str
+    requires_manual_review: bool
+    metadata: Mapping[str, MetadataValue] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        ensure_timezone_aware("occurred_at", self.occurred_at)
         object.__setattr__(self, "metadata", metadata_without_exchange_payload(self.metadata))
