@@ -22,7 +22,9 @@ FORBIDDEN_METADATA_KEYS = frozenset(
         "token",
     }
 )
-FORBIDDEN_METADATA_TOKENS = frozenset({"account", "api", "secret", "token"})
+FORBIDDEN_METADATA_TOKENS = frozenset(
+    {"account", "address", "api", "secret", "token", "wallet", "withdrawal"}
+)
 
 
 def ensure_positive_decimal(name: str, value: Decimal) -> Decimal:

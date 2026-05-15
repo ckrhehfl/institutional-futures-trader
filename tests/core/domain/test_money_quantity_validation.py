@@ -345,6 +345,19 @@ def test_fee_funding_pnl_and_position_validate_decimal_values() -> None:
     assert position.maintenance_margin == Decimal("5")
 
 
+def test_funding_fee_rejects_non_finite_amount() -> None:
+    for amount in [Decimal("Infinity"), Decimal("-Infinity"), Decimal("NaN")]:
+        with pytest.raises(ValueError, match="amount must be finite"):
+            FundingFee(
+                symbol="BTC-USDT",
+                amount=amount,
+                asset="USDT",
+                funding_timestamp=NOW,
+                occurred_at=NOW,
+                metadata={},
+            )
+
+
 def test_pnl_rejects_non_finite_signed_values() -> None:
     pnl = PnL(
         symbol="BTC-USDT",

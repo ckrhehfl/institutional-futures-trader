@@ -65,6 +65,9 @@ def test_metadata_rejects_secret_key_spelling_variants() -> None:
         "account-id",
         "accountId",
         "ACCOUNT_ID",
+        "wallet_address",
+        "walletAddress",
+        "withdrawal_address",
         "exchangeResponse",
     ]:
         with pytest.raises(ValueError, match="metadata must not contain exchange-specific"):

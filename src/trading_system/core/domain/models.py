@@ -227,6 +227,7 @@ class FundingFee:
     metadata: Mapping[str, MetadataValue] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
+        ensure_finite_decimal("amount", self.amount)
         ensure_timezone_aware("funding_timestamp", self.funding_timestamp)
         ensure_timezone_aware("occurred_at", self.occurred_at)
         object.__setattr__(self, "metadata", safe_metadata(self.metadata))
