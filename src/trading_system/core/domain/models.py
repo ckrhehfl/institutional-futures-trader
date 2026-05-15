@@ -96,12 +96,12 @@ class OrderIntent:
         if self.order_type not in LIMIT_PRICE_ORDER_TYPES and self.limit_price is not None:
             raise ValueError("limit_price is only valid for limit orders")
         if self.order_type not in LIMIT_PRICE_ORDER_TYPES and (
-            self.time_in_force is TimeInForce.POST_ONLY or self.post_only
+            self.time_in_force == TimeInForce.POST_ONLY or self.post_only
         ):
             raise ValueError("post-only is only valid for limit orders")
-        if self.time_in_force is TimeInForce.POST_ONLY and not self.post_only:
+        if self.time_in_force == TimeInForce.POST_ONLY and not self.post_only:
             raise ValueError("post-only fields must agree")
-        if self.post_only and self.time_in_force is not TimeInForce.POST_ONLY:
+        if self.post_only and self.time_in_force != TimeInForce.POST_ONLY:
             raise ValueError("post-only limit orders must use post-only time in force")
         if self.limit_price is not None:
             ensure_positive_decimal("limit_price", self.limit_price)
@@ -163,12 +163,12 @@ class Order:
         if self.order_type not in LIMIT_PRICE_ORDER_TYPES and self.limit_price is not None:
             raise ValueError("limit_price is only valid for limit orders")
         if self.order_type not in LIMIT_PRICE_ORDER_TYPES and (
-            self.time_in_force is TimeInForce.POST_ONLY or self.post_only
+            self.time_in_force == TimeInForce.POST_ONLY or self.post_only
         ):
             raise ValueError("post-only is only valid for limit orders")
-        if self.time_in_force is TimeInForce.POST_ONLY and not self.post_only:
+        if self.time_in_force == TimeInForce.POST_ONLY and not self.post_only:
             raise ValueError("post-only fields must agree")
-        if self.post_only and self.time_in_force is not TimeInForce.POST_ONLY:
+        if self.post_only and self.time_in_force != TimeInForce.POST_ONLY:
             raise ValueError("post-only limit orders must use post-only time in force")
         if self.limit_price is not None:
             ensure_positive_decimal("limit_price", self.limit_price)

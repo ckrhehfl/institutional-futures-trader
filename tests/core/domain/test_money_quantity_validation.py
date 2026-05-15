@@ -162,11 +162,12 @@ def test_order_rejects_stop_types_until_trigger_price_exists() -> None:
 def test_market_order_rejects_post_only_semantics() -> None:
     for time_in_force, post_only in [
         (TimeInForce.POST_ONLY, False),
+        (TimeInForce.POST_ONLY.value, False),
         (TimeInForce.IOC, True),
     ]:
         with pytest.raises(ValueError, match="post-only is only valid for limit orders"):
             Order(
-                order_id=f"order-market-{time_in_force.value}-{post_only}",
+                order_id=f"order-market-{time_in_force}-{post_only}",
                 intent_id="intent-1",
                 symbol="BTC-USDT",
                 side=OrderSide.BUY,
@@ -212,25 +213,26 @@ def test_limit_order_rejects_immediate_post_only_semantics() -> None:
 
 
 def test_limit_order_rejects_mismatched_post_only_fields() -> None:
-    with pytest.raises(ValueError, match="post-only fields must agree"):
-        Order(
-            order_id="order-limit-post-only-mismatch",
-            intent_id="intent-1",
-            symbol="BTC-USDT",
-            side=OrderSide.BUY,
-            order_type=OrderType.LIMIT,
-            status=OrderStatus.ACCEPTED,
-            quantity=Decimal("0.001"),
-            filled_quantity=Decimal("0"),
-            limit_price=Decimal("100000"),
-            time_in_force=TimeInForce.POST_ONLY,
-            reduce_only=False,
-            close_only=False,
-            post_only=False,
-            created_at=NOW,
-            updated_at=NOW,
-            metadata={},
-        )
+    for time_in_force in [TimeInForce.POST_ONLY, TimeInForce.POST_ONLY.value]:
+        with pytest.raises(ValueError, match="post-only fields must agree"):
+            Order(
+                order_id=f"order-limit-post-only-mismatch-{time_in_force}",
+                intent_id="intent-1",
+                symbol="BTC-USDT",
+                side=OrderSide.BUY,
+                order_type=OrderType.LIMIT,
+                status=OrderStatus.ACCEPTED,
+                quantity=Decimal("0.001"),
+                filled_quantity=Decimal("0"),
+                limit_price=Decimal("100000"),
+                time_in_force=time_in_force,
+                reduce_only=False,
+                close_only=False,
+                post_only=False,
+                created_at=NOW,
+                updated_at=NOW,
+                metadata={},
+            )
 
 
 def test_filled_order_must_have_no_remaining_quantity() -> None:
