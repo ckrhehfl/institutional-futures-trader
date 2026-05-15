@@ -47,3 +47,7 @@ def metadata_without_exchange_payload(
     if forbidden_keys:
         raise ValueError("metadata must not contain exchange-specific payload keys")
     return dict(metadata)
+
+
+def safe_metadata(metadata: Mapping[str, MetadataValue]) -> dict[str, MetadataValue]:
+    return metadata_without_exchange_payload(metadata)

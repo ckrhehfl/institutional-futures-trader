@@ -23,7 +23,7 @@ from trading_system.core.domain.validation import (
     ensure_non_negative_decimal,
     ensure_positive_decimal,
     ensure_timezone_aware,
-    metadata_without_exchange_payload,
+    safe_metadata,
 )
 
 ORDER_INTENT_CREATORS = frozenset(
@@ -48,7 +48,7 @@ class Signal:
             ensure_positive_decimal("confidence", self.confidence)
         if self.sizing_suggestion is not None:
             ensure_positive_decimal("sizing_suggestion", self.sizing_suggestion)
-        object.__setattr__(self, "metadata", metadata_without_exchange_payload(self.metadata))
+        object.__setattr__(self, "metadata", safe_metadata(self.metadata))
 
 
 @dataclass(frozen=True, slots=True)
@@ -80,7 +80,7 @@ class OrderIntent:
             ensure_positive_decimal("limit_price", self.limit_price)
         ensure_timezone_aware("created_at", self.created_at)
         self._ensure_mode_matches_venue()
-        object.__setattr__(self, "metadata", metadata_without_exchange_payload(self.metadata))
+        object.__setattr__(self, "metadata", safe_metadata(self.metadata))
 
     def _ensure_mode_matches_venue(self) -> None:
         if self.trading_mode is TradingMode.LIVE:
@@ -125,7 +125,7 @@ class Order:
             ensure_positive_decimal("limit_price", self.limit_price)
         ensure_timezone_aware("created_at", self.created_at)
         ensure_timezone_aware("updated_at", self.updated_at)
-        object.__setattr__(self, "metadata", metadata_without_exchange_payload(self.metadata))
+        object.__setattr__(self, "metadata", safe_metadata(self.metadata))
 
     @property
     def remaining_quantity(self) -> Decimal:
@@ -149,7 +149,7 @@ class Fill:
         ensure_positive_decimal("price", self.price)
         ensure_non_negative_decimal("fee", self.fee)
         ensure_timezone_aware("filled_at", self.filled_at)
-        object.__setattr__(self, "metadata", metadata_without_exchange_payload(self.metadata))
+        object.__setattr__(self, "metadata", safe_metadata(self.metadata))
 
     @property
     def notional(self) -> Decimal:
@@ -167,7 +167,7 @@ class Fee:
     def __post_init__(self) -> None:
         ensure_non_negative_decimal("amount", self.amount)
         ensure_timezone_aware("occurred_at", self.occurred_at)
-        object.__setattr__(self, "metadata", metadata_without_exchange_payload(self.metadata))
+        object.__setattr__(self, "metadata", safe_metadata(self.metadata))
 
 
 @dataclass(frozen=True, slots=True)
@@ -182,7 +182,7 @@ class FundingFee:
     def __post_init__(self) -> None:
         ensure_timezone_aware("funding_timestamp", self.funding_timestamp)
         ensure_timezone_aware("occurred_at", self.occurred_at)
-        object.__setattr__(self, "metadata", metadata_without_exchange_payload(self.metadata))
+        object.__setattr__(self, "metadata", safe_metadata(self.metadata))
 
 
 @dataclass(frozen=True, slots=True)
@@ -198,7 +198,7 @@ class PnL:
     def __post_init__(self) -> None:
         ensure_non_negative_decimal("fees", self.fees)
         ensure_timezone_aware("updated_at", self.updated_at)
-        object.__setattr__(self, "metadata", metadata_without_exchange_payload(self.metadata))
+        object.__setattr__(self, "metadata", safe_metadata(self.metadata))
 
 
 @dataclass(frozen=True, slots=True)
@@ -225,7 +225,7 @@ class Position:
         if self.liquidation_price is not None:
             ensure_positive_decimal("liquidation_price", self.liquidation_price)
         ensure_timezone_aware("updated_at", self.updated_at)
-        object.__setattr__(self, "metadata", metadata_without_exchange_payload(self.metadata))
+        object.__setattr__(self, "metadata", safe_metadata(self.metadata))
 
 
 @dataclass(frozen=True, slots=True)
@@ -239,7 +239,7 @@ class RiskDecision:
 
     def __post_init__(self) -> None:
         ensure_timezone_aware("decided_at", self.decided_at)
-        object.__setattr__(self, "metadata", metadata_without_exchange_payload(self.metadata))
+        object.__setattr__(self, "metadata", safe_metadata(self.metadata))
 
 
 @dataclass(frozen=True, slots=True)
@@ -256,4 +256,4 @@ class ReconciliationEvent:
 
     def __post_init__(self) -> None:
         ensure_timezone_aware("occurred_at", self.occurred_at)
-        object.__setattr__(self, "metadata", metadata_without_exchange_payload(self.metadata))
+        object.__setattr__(self, "metadata", safe_metadata(self.metadata))
