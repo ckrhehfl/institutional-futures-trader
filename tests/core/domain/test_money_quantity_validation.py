@@ -156,6 +156,32 @@ def test_market_order_rejects_post_only_semantics() -> None:
             )
 
 
+def test_limit_order_rejects_immediate_post_only_semantics() -> None:
+    for time_in_force in [TimeInForce.IOC, TimeInForce.FOK]:
+        with pytest.raises(
+            ValueError,
+            match="post-only limit orders must use post-only time in force",
+        ):
+            Order(
+                order_id=f"order-limit-post-only-{time_in_force.value}",
+                intent_id="intent-1",
+                symbol="BTC-USDT",
+                side=OrderSide.BUY,
+                order_type=OrderType.LIMIT,
+                status=OrderStatus.ACCEPTED,
+                quantity=Decimal("0.001"),
+                filled_quantity=Decimal("0"),
+                limit_price=Decimal("100000"),
+                time_in_force=time_in_force,
+                reduce_only=False,
+                close_only=False,
+                post_only=True,
+                created_at=NOW,
+                updated_at=NOW,
+                metadata={},
+            )
+
+
 def test_filled_order_must_have_no_remaining_quantity() -> None:
     order = Order(
         order_id="order-1",
