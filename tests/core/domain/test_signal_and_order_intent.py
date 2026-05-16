@@ -61,6 +61,31 @@ def test_order_intent_is_created_for_risk_review_not_execution() -> None:
     assert not hasattr(intent, "submit")
     assert not hasattr(intent, "execute")
 
+    raw_enum_intent = OrderIntent(
+        intent_id="intent-raw",
+        source_signal_id="sig-1",
+        created_by="order_intent_builder",
+        symbol="BTC-USDT",
+        side=OrderSide.BUY.value,
+        order_type=OrderType.MARKET.value,
+        quantity=Decimal("0.001"),
+        limit_price=None,
+        time_in_force=TimeInForce.IOC.value,
+        trading_mode=TradingMode.PAPER.value,
+        execution_venue=ExecutionVenue.PAPER.value,
+        leverage=Decimal("1"),
+        reduce_only=False,
+        close_only=False,
+        post_only=False,
+        created_at=NOW,
+        metadata={},
+    )
+    assert raw_enum_intent.side is OrderSide.BUY
+    assert raw_enum_intent.order_type is OrderType.MARKET
+    assert raw_enum_intent.time_in_force is TimeInForce.IOC
+    assert raw_enum_intent.trading_mode is TradingMode.PAPER
+    assert raw_enum_intent.execution_venue is ExecutionVenue.PAPER
+
 
 def test_order_intent_rejects_strategy_or_ai_creator() -> None:
     for created_by in ["strategy", "ai", "ml"]:

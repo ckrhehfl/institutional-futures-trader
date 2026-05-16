@@ -26,6 +26,16 @@ def test_risk_decision_has_no_order_execution_behavior() -> None:
     assert not hasattr(decision, "submit")
     assert not hasattr(decision, "execute")
 
+    raw_status_decision = RiskDecision(
+        decision_id="risk-2",
+        intent_id="intent-1",
+        status=RiskDecisionStatus.REQUIRES_REVIEW.value,
+        reason="manual review required",
+        decided_at=NOW,
+        metadata={},
+    )
+    assert raw_status_decision.status is RiskDecisionStatus.REQUIRES_REVIEW
+
 
 def test_risk_decision_rejects_unknown_status() -> None:
     with pytest.raises(ValueError):
@@ -55,6 +65,19 @@ def test_reconciliation_event_records_drift_without_raw_payload() -> None:
     assert event.requires_manual_review is True
     with pytest.raises(TypeError):
         event.metadata["action"] = "mutated"  # type: ignore[index]
+
+    raw_status_event = ReconciliationEvent(
+        event_id="recon-raw",
+        status=ReconciliationStatus.DRIFT_DETECTED.value,
+        symbol="BTC-USDT",
+        occurred_at=NOW,
+        internal_state_ref="internal-position-1",
+        exchange_snapshot_ref="snapshot-1",
+        drift_summary="open order mismatch",
+        requires_manual_review=True,
+        metadata={},
+    )
+    assert raw_status_event.status is ReconciliationStatus.DRIFT_DETECTED
 
     with pytest.raises(ValueError, match="metadata must not contain exchange-specific"):
         ReconciliationEvent(

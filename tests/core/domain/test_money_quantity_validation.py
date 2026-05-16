@@ -326,6 +326,13 @@ def test_partially_filled_order_requires_partial_quantity() -> None:
                 filled_quantity=filled_quantity,
             )
 
+    raw_status_order = replace(
+        order,
+        status=OrderStatus.PARTIALLY_FILLED.value,
+        filled_quantity=Decimal("0.0005"),
+    )
+    assert raw_status_order.status is OrderStatus.PARTIALLY_FILLED
+
 
 def test_order_updated_at_must_not_predate_created_at() -> None:
     with pytest.raises(ValueError, match="updated_at must not predate created_at"):
@@ -395,7 +402,7 @@ def test_position_rejects_unknown_runtime_enum_values() -> None:
 
 
 def test_raw_flat_position_side_follows_flat_validation() -> None:
-    Position(
+    flat_position = Position(
         symbol="BTC-USDT",
         side=PositionSide.FLAT.value,
         quantity=Decimal("0"),
@@ -409,6 +416,7 @@ def test_raw_flat_position_side_follows_flat_validation() -> None:
         updated_at=NOW,
         metadata={},
     )
+    assert flat_position.side is PositionSide.FLAT
 
     with pytest.raises(ValueError, match="flat position quantity must be zero"):
         Position(

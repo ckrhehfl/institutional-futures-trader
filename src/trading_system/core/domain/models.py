@@ -85,11 +85,16 @@ class OrderIntent:
     metadata: Mapping[str, MetadataValue] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
-        OrderSide(self.side)
+        side = OrderSide(self.side)
         order_type = OrderType(self.order_type)
         time_in_force = TimeInForce(self.time_in_force)
-        TradingMode(self.trading_mode)
-        ExecutionVenue(self.execution_venue)
+        trading_mode = TradingMode(self.trading_mode)
+        execution_venue = ExecutionVenue(self.execution_venue)
+        object.__setattr__(self, "side", side)
+        object.__setattr__(self, "order_type", order_type)
+        object.__setattr__(self, "time_in_force", time_in_force)
+        object.__setattr__(self, "trading_mode", trading_mode)
+        object.__setattr__(self, "execution_venue", execution_venue)
         if self.created_by not in ORDER_INTENT_CREATORS:
             raise ValueError("OrderIntent creator must be an intent builder")
         ensure_positive_decimal("quantity", self.quantity)
@@ -151,10 +156,14 @@ class Order:
     metadata: Mapping[str, MetadataValue] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
-        OrderSide(self.side)
+        side = OrderSide(self.side)
         order_type = OrderType(self.order_type)
         status = OrderStatus(self.status)
         time_in_force = TimeInForce(self.time_in_force)
+        object.__setattr__(self, "side", side)
+        object.__setattr__(self, "order_type", order_type)
+        object.__setattr__(self, "status", status)
+        object.__setattr__(self, "time_in_force", time_in_force)
         ensure_positive_decimal("quantity", self.quantity)
         ensure_non_negative_decimal("filled_quantity", self.filled_quantity)
         if self.filled_quantity > self.quantity:
@@ -207,7 +216,8 @@ class Fill:
     metadata: Mapping[str, MetadataValue] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
-        OrderSide(self.side)
+        side = OrderSide(self.side)
+        object.__setattr__(self, "side", side)
         ensure_positive_decimal("quantity", self.quantity)
         ensure_positive_decimal("price", self.price)
         ensure_non_negative_decimal("fee", self.fee)
@@ -285,8 +295,11 @@ class Position:
 
     def __post_init__(self) -> None:
         side = PositionSide(self.side)
-        MarginMode(self.margin_mode)
-        PositionMode(self.position_mode)
+        margin_mode = MarginMode(self.margin_mode)
+        position_mode = PositionMode(self.position_mode)
+        object.__setattr__(self, "side", side)
+        object.__setattr__(self, "margin_mode", margin_mode)
+        object.__setattr__(self, "position_mode", position_mode)
         ensure_non_negative_decimal("quantity", self.quantity)
         if side == PositionSide.FLAT:
             if self.quantity != Decimal("0"):
@@ -318,7 +331,8 @@ class RiskDecision:
     metadata: Mapping[str, MetadataValue] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
-        RiskDecisionStatus(self.status)
+        status = RiskDecisionStatus(self.status)
+        object.__setattr__(self, "status", status)
         ensure_timezone_aware("decided_at", self.decided_at)
         object.__setattr__(self, "metadata", safe_metadata(self.metadata))
 
@@ -336,6 +350,7 @@ class ReconciliationEvent:
     metadata: Mapping[str, MetadataValue] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
-        ReconciliationStatus(self.status)
+        status = ReconciliationStatus(self.status)
+        object.__setattr__(self, "status", status)
         ensure_timezone_aware("occurred_at", self.occurred_at)
         object.__setattr__(self, "metadata", safe_metadata(self.metadata))
