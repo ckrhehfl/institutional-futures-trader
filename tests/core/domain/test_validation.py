@@ -77,6 +77,10 @@ def test_metadata_rejects_secret_key_spelling_variants() -> None:
         "accesstoken",
         "accountid",
         "walletaddress",
+        "apisecret",
+        "secretkey",
+        "withdrawaladdress",
+        "BINGXAPIKEY",
     ]:
         with pytest.raises(ValueError, match="metadata must not contain exchange-specific"):
             metadata_without_exchange_payload({key: "not allowed"})
