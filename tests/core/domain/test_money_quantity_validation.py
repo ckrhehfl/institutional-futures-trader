@@ -516,6 +516,32 @@ def test_close_only_order_requires_reduce_only() -> None:
         )
 
 
+def test_order_rejects_non_bool_constraint_flags() -> None:
+    valid_args = {
+        "order_id": "order-flags",
+        "intent_id": "intent-1",
+        "symbol": "BTC-USDT",
+        "side": OrderSide.BUY,
+        "order_type": OrderType.MARKET,
+        "status": OrderStatus.SUBMITTED,
+        "quantity": Decimal("0.001"),
+        "filled_quantity": Decimal("0"),
+        "limit_price": None,
+        "time_in_force": TimeInForce.IOC,
+        "reduce_only": False,
+        "close_only": False,
+        "post_only": False,
+        "created_at": NOW,
+        "updated_at": NOW,
+        "metadata": {},
+    }
+
+    for field_name in ["reduce_only", "close_only", "post_only"]:
+        args = valid_args | {field_name: "false"}
+        with pytest.raises(ValueError, match=f"{field_name} must be a bool"):
+            Order(**args)
+
+
 def test_non_flat_position_requires_positive_quantity() -> None:
     for side in [PositionSide.LONG, PositionSide.SHORT]:
         with pytest.raises(ValueError, match="non-flat position quantity must be positive"):

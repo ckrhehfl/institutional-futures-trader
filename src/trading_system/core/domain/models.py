@@ -64,6 +64,12 @@ def normalized_order_intent_creator(created_by: str) -> str:
     return DOCUMENTED_ORDER_INTENT_CREATORS.get(creator_key, creator_key)
 
 
+def ensure_bool(name: str, value: bool) -> bool:
+    if not isinstance(value, bool):
+        raise ValueError(f"{name} must be a bool")
+    return value
+
+
 @dataclass(frozen=True, slots=True)
 class Signal:
     signal_id: str
@@ -119,11 +125,17 @@ class OrderIntent:
         object.__setattr__(self, "time_in_force", time_in_force)
         object.__setattr__(self, "trading_mode", trading_mode)
         object.__setattr__(self, "execution_venue", execution_venue)
+        reduce_only = ensure_bool("reduce_only", self.reduce_only)
+        close_only = ensure_bool("close_only", self.close_only)
+        post_only = ensure_bool("post_only", self.post_only)
+        object.__setattr__(self, "reduce_only", reduce_only)
+        object.__setattr__(self, "close_only", close_only)
+        object.__setattr__(self, "post_only", post_only)
         created_by = normalized_order_intent_creator(self.created_by)
         object.__setattr__(self, "created_by", created_by)
         if created_by not in ORDER_INTENT_CREATORS:
             raise ValueError("OrderIntent creator must be an intent builder")
-        if self.close_only and not self.reduce_only:
+        if close_only and not reduce_only:
             raise ValueError("close-only requires reduce-only")
         ensure_positive_decimal("quantity", self.quantity)
         ensure_positive_decimal("leverage", self.leverage)
@@ -134,12 +146,12 @@ class OrderIntent:
         if order_type not in LIMIT_PRICE_ORDER_TYPES and self.limit_price is not None:
             raise ValueError("limit_price is only valid for limit orders")
         if order_type not in LIMIT_PRICE_ORDER_TYPES and (
-            time_in_force == TimeInForce.POST_ONLY or self.post_only
+            time_in_force == TimeInForce.POST_ONLY or post_only
         ):
             raise ValueError("post-only is only valid for limit orders")
-        if time_in_force == TimeInForce.POST_ONLY and not self.post_only:
+        if time_in_force == TimeInForce.POST_ONLY and not post_only:
             raise ValueError("post-only fields must agree")
-        if self.post_only and time_in_force != TimeInForce.POST_ONLY:
+        if post_only and time_in_force != TimeInForce.POST_ONLY:
             raise ValueError("post-only limit orders must use post-only time in force")
         if self.limit_price is not None:
             ensure_positive_decimal("limit_price", self.limit_price)
@@ -192,9 +204,15 @@ class Order:
         object.__setattr__(self, "order_type", order_type)
         object.__setattr__(self, "status", status)
         object.__setattr__(self, "time_in_force", time_in_force)
+        reduce_only = ensure_bool("reduce_only", self.reduce_only)
+        close_only = ensure_bool("close_only", self.close_only)
+        post_only = ensure_bool("post_only", self.post_only)
+        object.__setattr__(self, "reduce_only", reduce_only)
+        object.__setattr__(self, "close_only", close_only)
+        object.__setattr__(self, "post_only", post_only)
         ensure_positive_decimal("quantity", self.quantity)
         ensure_non_negative_decimal("filled_quantity", self.filled_quantity)
-        if self.close_only and not self.reduce_only:
+        if close_only and not reduce_only:
             raise ValueError("close-only requires reduce-only")
         if status == OrderStatus.PENDING_RISK:
             raise ValueError("pre-risk intents must not become orders")
@@ -224,12 +242,12 @@ class Order:
         if order_type not in LIMIT_PRICE_ORDER_TYPES and self.limit_price is not None:
             raise ValueError("limit_price is only valid for limit orders")
         if order_type not in LIMIT_PRICE_ORDER_TYPES and (
-            time_in_force == TimeInForce.POST_ONLY or self.post_only
+            time_in_force == TimeInForce.POST_ONLY or post_only
         ):
             raise ValueError("post-only is only valid for limit orders")
-        if time_in_force == TimeInForce.POST_ONLY and not self.post_only:
+        if time_in_force == TimeInForce.POST_ONLY and not post_only:
             raise ValueError("post-only fields must agree")
-        if self.post_only and time_in_force != TimeInForce.POST_ONLY:
+        if post_only and time_in_force != TimeInForce.POST_ONLY:
             raise ValueError("post-only limit orders must use post-only time in force")
         if self.limit_price is not None:
             ensure_positive_decimal("limit_price", self.limit_price)
