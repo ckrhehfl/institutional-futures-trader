@@ -25,6 +25,9 @@ FORBIDDEN_METADATA_KEYS = frozenset(
 FORBIDDEN_METADATA_TOKENS = frozenset(
     {"account", "address", "api", "secret", "token", "wallet", "withdrawal"}
 )
+FORBIDDEN_COMPACT_METADATA_KEYS = frozenset(
+    {"accountid", "accesstoken", "apikey", "walletaddress"}
+)
 
 
 def ensure_positive_decimal(name: str, value: Decimal) -> Decimal:
@@ -72,11 +75,13 @@ def metadata_without_exchange_payload(
     metadata: Mapping[str, MetadataValue],
 ) -> Mapping[str, MetadataValue]:
     normalized_keys = {normalized_metadata_key(key) for key in metadata}
+    compact_keys = {key.replace("_", "") for key in normalized_keys}
     forbidden_keys = FORBIDDEN_METADATA_KEYS.intersection(normalized_keys)
+    forbidden_compact_keys = FORBIDDEN_COMPACT_METADATA_KEYS.intersection(compact_keys)
     forbidden_tokens = {
         token for key in normalized_keys for token in key.split("_")
     }.intersection(FORBIDDEN_METADATA_TOKENS)
-    if forbidden_keys or forbidden_tokens:
+    if forbidden_keys or forbidden_compact_keys or forbidden_tokens:
         raise ValueError("metadata must not contain exchange-specific payload keys")
     ensure_metadata_values_are_primitive(metadata)
     return MappingProxyType(dict(metadata))
