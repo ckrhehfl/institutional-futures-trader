@@ -64,7 +64,6 @@ def test_order_and_fill_validate_positive_values() -> None:
 def test_pre_execution_order_states_reject_filled_quantity() -> None:
     for status in [
         OrderStatus.CREATED,
-        OrderStatus.PENDING_RISK,
         OrderStatus.RISK_APPROVED,
         OrderStatus.ACCEPTED,
     ]:
@@ -87,6 +86,28 @@ def test_pre_execution_order_states_reject_filled_quantity() -> None:
                 updated_at=NOW,
                 metadata={},
             )
+
+
+def test_order_rejects_pending_risk_status() -> None:
+    with pytest.raises(ValueError, match="pre-risk intents must not become orders"):
+        Order(
+            order_id="order-pending-risk",
+            intent_id="intent-1",
+            symbol="BTC-USDT",
+            side=OrderSide.BUY,
+            order_type=OrderType.LIMIT,
+            status=OrderStatus.PENDING_RISK,
+            quantity=Decimal("0.001"),
+            filled_quantity=Decimal("0"),
+            limit_price=Decimal("100000"),
+            time_in_force=TimeInForce.GTC,
+            reduce_only=False,
+            close_only=False,
+            post_only=False,
+            created_at=NOW,
+            updated_at=NOW,
+            metadata={},
+        )
 
 
 def test_order_rejects_risk_rejected_status() -> None:

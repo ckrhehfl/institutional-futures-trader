@@ -45,7 +45,6 @@ PARTIAL_FILL_STATUSES = frozenset(
 PRE_EXECUTION_STATUSES = frozenset(
     {
         OrderStatus.CREATED,
-        OrderStatus.PENDING_RISK,
         OrderStatus.RISK_APPROVED,
         OrderStatus.ACCEPTED,
     }
@@ -182,6 +181,8 @@ class Order:
         ensure_non_negative_decimal("filled_quantity", self.filled_quantity)
         if self.close_only and not self.reduce_only:
             raise ValueError("close-only requires reduce-only")
+        if status == OrderStatus.PENDING_RISK:
+            raise ValueError("pre-risk intents must not become orders")
         if status == OrderStatus.RISK_REJECTED:
             raise ValueError("risk-rejected intents must not become orders")
         if self.filled_quantity > self.quantity:
