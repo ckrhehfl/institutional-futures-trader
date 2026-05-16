@@ -291,3 +291,26 @@ def test_limit_order_intent_rejects_mismatched_post_only_fields() -> None:
                 created_at=NOW,
                 metadata={},
             )
+
+
+def test_close_only_order_intent_requires_reduce_only() -> None:
+    with pytest.raises(ValueError, match="close-only requires reduce-only"):
+        OrderIntent(
+            intent_id="intent-close-only",
+            source_signal_id="sig-1",
+            created_by="order_intent_builder",
+            symbol="BTC-USDT",
+            side=OrderSide.SELL,
+            order_type=OrderType.MARKET,
+            quantity=Decimal("0.001"),
+            limit_price=None,
+            time_in_force=TimeInForce.IOC,
+            trading_mode=TradingMode.PAPER,
+            execution_venue=ExecutionVenue.PAPER,
+            leverage=Decimal("1"),
+            reduce_only=False,
+            close_only=True,
+            post_only=False,
+            created_at=NOW,
+            metadata={},
+        )

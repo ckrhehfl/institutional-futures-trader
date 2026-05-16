@@ -100,6 +100,8 @@ class OrderIntent:
         object.__setattr__(self, "execution_venue", execution_venue)
         if self.created_by not in ORDER_INTENT_CREATORS:
             raise ValueError("OrderIntent creator must be an intent builder")
+        if self.close_only and not self.reduce_only:
+            raise ValueError("close-only requires reduce-only")
         ensure_positive_decimal("quantity", self.quantity)
         ensure_positive_decimal("leverage", self.leverage)
         if order_type in UNSUPPORTED_STOP_ORDER_TYPES:
@@ -169,6 +171,8 @@ class Order:
         object.__setattr__(self, "time_in_force", time_in_force)
         ensure_positive_decimal("quantity", self.quantity)
         ensure_non_negative_decimal("filled_quantity", self.filled_quantity)
+        if self.close_only and not self.reduce_only:
+            raise ValueError("close-only requires reduce-only")
         if self.filled_quantity > self.quantity:
             raise ValueError("filled_quantity must not exceed quantity")
         if status in PRE_EXECUTION_STATUSES and self.filled_quantity != Decimal("0"):

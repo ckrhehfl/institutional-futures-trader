@@ -430,6 +430,28 @@ def test_order_updated_at_must_not_predate_created_at() -> None:
         )
 
 
+def test_close_only_order_requires_reduce_only() -> None:
+    with pytest.raises(ValueError, match="close-only requires reduce-only"):
+        Order(
+            order_id="order-close-only",
+            intent_id="intent-1",
+            symbol="BTC-USDT",
+            side=OrderSide.SELL,
+            order_type=OrderType.MARKET,
+            status=OrderStatus.SUBMITTED,
+            quantity=Decimal("0.001"),
+            filled_quantity=Decimal("0"),
+            limit_price=None,
+            time_in_force=TimeInForce.IOC,
+            reduce_only=False,
+            close_only=True,
+            post_only=False,
+            created_at=NOW,
+            updated_at=NOW,
+            metadata={},
+        )
+
+
 def test_non_flat_position_requires_positive_quantity() -> None:
     for side in [PositionSide.LONG, PositionSide.SHORT]:
         with pytest.raises(ValueError, match="non-flat position quantity must be positive"):
