@@ -35,6 +35,22 @@ def test_signal_is_not_an_order_and_has_no_execution_fields() -> None:
     assert not hasattr(signal, "execute")
 
 
+def test_signal_allows_zero_valued_advisories() -> None:
+    signal = Signal(
+        signal_id="sig-neutral",
+        symbol="BTC-USDT",
+        created_at=NOW,
+        source="example-strategy",
+        confidence=Decimal("0"),
+        regime="neutral",
+        sizing_suggestion=Decimal("0"),
+        metadata={"mode": "paper"},
+    )
+
+    assert signal.confidence == Decimal("0")
+    assert signal.sizing_suggestion == Decimal("0")
+
+
 def test_order_intent_is_created_for_risk_review_not_execution() -> None:
     intent = OrderIntent(
         intent_id="intent-1",

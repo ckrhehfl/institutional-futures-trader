@@ -34,7 +34,12 @@ LIMIT_PRICE_ORDER_TYPES = frozenset({OrderType.LIMIT})
 UNSUPPORTED_STOP_ORDER_TYPES = frozenset({OrderType.STOP, OrderType.STOP_LIMIT})
 TERMINAL_FILLED_STATUSES = frozenset({OrderStatus.FILLED})
 PARTIAL_FILL_STATUSES = frozenset(
-    {OrderStatus.PARTIALLY_FILLED, OrderStatus.CANCELED, OrderStatus.EXPIRED}
+    {
+        OrderStatus.PARTIALLY_FILLED,
+        OrderStatus.CANCELED,
+        OrderStatus.EXPIRED,
+        OrderStatus.UNKNOWN,
+    }
 )
 PRE_EXECUTION_STATUSES = frozenset(
     {
@@ -61,9 +66,9 @@ class Signal:
     def __post_init__(self) -> None:
         ensure_timezone_aware("created_at", self.created_at)
         if self.confidence is not None:
-            ensure_positive_decimal("confidence", self.confidence)
+            ensure_non_negative_decimal("confidence", self.confidence)
         if self.sizing_suggestion is not None:
-            ensure_positive_decimal("sizing_suggestion", self.sizing_suggestion)
+            ensure_non_negative_decimal("sizing_suggestion", self.sizing_suggestion)
         object.__setattr__(self, "metadata", safe_metadata(self.metadata))
 
 
