@@ -2,19 +2,20 @@
 
 이 문서는 PR 단위의 구현 순서와 각 단계의 non-goals를 고정합니다. 각 PR은 가능한 한 하나의 계층만 다루고, 범위 밖 제안은 follow-up PR로 남깁니다.
 
-## 1. Domain Model v0 - completed by PR #2
+## 1. Domain Model v0 / Approved Minimal Scaffold
 
 목표:
 
-- PR #2에서 승인된 최소 scaffold를 완료했습니다: `pyproject.toml`, `src` layout, `src/trading_system` package root, `tests` directory, pytest/ruff/pre-commit 설정, `configs/README.md`, `.env.example`, `.gitignore`.
-- exchange-independent core domain model을 정의했습니다.
-- validation, invariant, public package import 경로를 테스트 가능하게 만들었습니다.
-- core domain model, validation, tests가 후속 PR에서 import/test/lint 가능한 기준선이 되도록 정리했습니다.
+- approved minimal scaffold를 별도 선행 PR에서 추가합니다: `pyproject.toml`, `src` layout, `src/trading_system` package root, `tests` directory, pytest/ruff/pre-commit 설정, `configs/README.md`, `.env.example`, `.gitignore`.
+- exchange-independent core domain model을 정의합니다.
+- validation, invariant, public package import 경로를 테스트 가능하게 만듭니다.
+- core domain model, validation, tests가 후속 PR에서 import/test/lint 가능한 기준선이 되도록 정리합니다.
 - domain object가 BingX나 특정 exchange payload shape에 의존하지 않도록 고정합니다.
+- 해당 선행 PR이 merge되기 전에는 scaffold, package root, tests가 main에 존재한다고 가정하지 않습니다.
 
 이번 단계에서 하지 않는 것:
 
-- 승인된 최소 scaffold를 runtime framework로 취급하지 않습니다.
+- approved minimal scaffold를 runtime framework로 취급하지 않습니다.
 - trading engine 구현
 - OMS/Risk Engine 구현
 - exchange adapter 구현
@@ -35,7 +36,7 @@
 
 - 이번 PR에서 새 Python code나 새 scaffold를 추가하지 않습니다.
 - 이번 PR에서 `pyproject.toml`, `src/trading_system`, `tests`를 수정하지 않습니다.
-- PR #2에서 이미 완료된 approved minimal scaffold를 부정하거나 제거하지 않습니다.
+- 선행 scaffold/domain PR의 필요성을 부정하거나 건너뛰지 않습니다.
 - trading engine, OMS, Risk Engine, exchange adapter, strategy, ML, live trading 추가
 
 ## 3. Domain Events v0
@@ -86,7 +87,23 @@
 - full trading engine runtime
 - persistence runtime 확장
 
-## 6. PaperExecutionVenue
+## 6. Backtest / Historical Replay
+
+목표:
+
+- `backtest` execution mode와 deterministic historical replay 요구사항을 paper execution 전에 명확히 검증합니다.
+- replayed fees, slippage assumptions, funding treatment, PnL, drawdown, risk decision history를 검증 가능한 산출물로 남깁니다.
+- paper/demo/live와 같은 core domain boundary를 사용하되 real exchange order path에 접근하지 않도록 합니다.
+
+이번 단계에서 하지 않는 것:
+
+- live trading
+- demo trading integration
+- BingX REST/WebSocket client
+- production deployment
+- live capital에 영향을 주는 runtime decision path
+
+## 7. PaperExecutionVenue
 
 목표:
 
@@ -102,7 +119,7 @@
 - production deployment
 - strategy 또는 ML alpha implementation
 
-## 7. BingX Adapter Contract Tests
+## 8. BingX Adapter Contract Tests
 
 목표:
 
@@ -118,7 +135,7 @@
 - live order submission
 - production adapter deployment
 
-## 8. Demo Trading Integration
+## 9. Demo Trading Integration
 
 목표:
 
@@ -134,7 +151,7 @@
 - 검증되지 않은 strategy/ML 자동 주문
 - production deployment
 
-## 9. Live Trading Gate, Only After Explicit Approval
+## 10. Live Trading Gate, Only After Explicit Approval
 
 목표:
 
