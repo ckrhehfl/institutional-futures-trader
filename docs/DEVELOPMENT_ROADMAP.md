@@ -6,12 +6,15 @@
 
 목표:
 
-- exchange-independent core domain type을 정의합니다.
-- validation, invariant, public package import 경로를 테스트 가능하게 만듭니다.
+- PR #2에서 승인된 최소 scaffold를 완료했습니다: `pyproject.toml`, `src` layout, `src/trading_system` package root, `tests` directory, pytest/ruff/pre-commit 설정, `configs/README.md`, `.env.example`, `.gitignore`.
+- exchange-independent core domain model을 정의했습니다.
+- validation, invariant, public package import 경로를 테스트 가능하게 만들었습니다.
+- core domain model, validation, tests가 후속 PR에서 import/test/lint 가능한 기준선이 되도록 정리했습니다.
 - domain object가 BingX나 특정 exchange payload shape에 의존하지 않도록 고정합니다.
 
 이번 단계에서 하지 않는 것:
 
+- 승인된 최소 scaffold를 runtime framework로 취급하지 않습니다.
 - trading engine 구현
 - OMS/Risk Engine 구현
 - exchange adapter 구현
@@ -23,14 +26,16 @@
 
 목표:
 
+- 이번 PR #3은 문서와 repository-level agent guidance만 정리합니다.
 - `AGENTS.md`에 Codex 작업 범위, approved minimal scaffold, hard non-goals, review guideline, PR scope rule을 명확히 적습니다.
 - 앞으로 Codex review가 PR 범위 밖 구현을 요구하지 않도록 기준을 정리합니다.
 - `docs/DEVELOPMENT_ROADMAP.md`에 후속 PR 순서를 고정합니다.
 
 이번 단계에서 하지 않는 것:
 
-- 코드 구현 또는 runtime scaffold 확장
-- `pyproject.toml`, `src/trading_system`, `tests` 변경
+- 이번 PR에서 새 Python code나 새 scaffold를 추가하지 않습니다.
+- 이번 PR에서 `pyproject.toml`, `src/trading_system`, `tests`를 수정하지 않습니다.
+- PR #2에서 이미 완료된 approved minimal scaffold를 부정하거나 제거하지 않습니다.
 - trading engine, OMS, Risk Engine, exchange adapter, strategy, ML, live trading 추가
 
 ## 3. Domain Events v0
