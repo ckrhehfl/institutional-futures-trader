@@ -401,5 +401,7 @@ class ReconciliationEvent:
         object.__setattr__(self, "status", status)
         if status == ReconciliationStatus.REQUIRES_REVIEW and not self.requires_manual_review:
             raise ValueError("requires_manual_review must be true when status requires review")
+        if status != ReconciliationStatus.MATCHED and not self.drift_summary.strip():
+            raise ValueError("drift_summary must not be blank for non-matched reconciliation")
         ensure_timezone_aware("occurred_at", self.occurred_at)
         object.__setattr__(self, "metadata", safe_metadata(self.metadata))

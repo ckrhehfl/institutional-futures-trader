@@ -121,6 +121,27 @@ def test_reconciliation_requires_review_status_sets_manual_review_flag() -> None
         )
 
 
+def test_non_matched_reconciliation_event_requires_drift_summary() -> None:
+    for status in [
+        ReconciliationStatus.DRIFT_DETECTED,
+        ReconciliationStatus.UNCERTAIN,
+        ReconciliationStatus.REQUIRES_REVIEW,
+    ]:
+        for drift_summary in ["", "   "]:
+            with pytest.raises(ValueError, match="drift_summary must not be blank"):
+                ReconciliationEvent(
+                    event_id=f"recon-{status.value}",
+                    status=status,
+                    symbol="BTC-USDT",
+                    occurred_at=NOW,
+                    internal_state_ref="internal-position-1",
+                    exchange_snapshot_ref="snapshot-1",
+                    drift_summary=drift_summary,
+                    requires_manual_review=True,
+                    metadata={},
+                )
+
+
 def test_reconciliation_event_rejects_unknown_status() -> None:
     with pytest.raises(ValueError):
         ReconciliationEvent(
