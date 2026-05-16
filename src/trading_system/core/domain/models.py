@@ -30,6 +30,14 @@ from trading_system.core.domain.validation import (
 ORDER_INTENT_CREATORS = frozenset(
     {"intent_builder", "order_intent_builder", "portfolio_construction"}
 )
+DOCUMENTED_ORDER_INTENT_CREATORS = {
+    "intentbuilder": "intent_builder",
+    "intent_builder": "intent_builder",
+    "orderintentbuilder": "order_intent_builder",
+    "order_intent_builder": "order_intent_builder",
+    "portfolioconstruction": "portfolio_construction",
+    "portfolio_construction": "portfolio_construction",
+}
 SIGNAL_CONFIDENCE_LABELS = frozenset({"low", "medium", "high"})
 LIMIT_PRICE_ORDER_TYPES = frozenset({OrderType.LIMIT})
 UNSUPPORTED_STOP_ORDER_TYPES = frozenset({OrderType.STOP, OrderType.STOP_LIMIT})
@@ -49,6 +57,11 @@ PRE_EXECUTION_STATUSES = frozenset(
         OrderStatus.ACCEPTED,
     }
 )
+
+
+def normalized_order_intent_creator(created_by: str) -> str:
+    creator_key = created_by.strip().lower().replace(" ", "_").replace("-", "_")
+    return DOCUMENTED_ORDER_INTENT_CREATORS.get(creator_key, creator_key)
 
 
 @dataclass(frozen=True, slots=True)
@@ -106,7 +119,9 @@ class OrderIntent:
         object.__setattr__(self, "time_in_force", time_in_force)
         object.__setattr__(self, "trading_mode", trading_mode)
         object.__setattr__(self, "execution_venue", execution_venue)
-        if self.created_by not in ORDER_INTENT_CREATORS:
+        created_by = normalized_order_intent_creator(self.created_by)
+        object.__setattr__(self, "created_by", created_by)
+        if created_by not in ORDER_INTENT_CREATORS:
             raise ValueError("OrderIntent creator must be an intent builder")
         if self.close_only and not self.reduce_only:
             raise ValueError("close-only requires reduce-only")

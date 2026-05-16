@@ -143,6 +143,39 @@ def test_order_intent_rejects_strategy_or_ai_creator() -> None:
             )
 
 
+def test_order_intent_normalizes_documented_creator_names() -> None:
+    expected_creators = {
+        "IntentBuilder": "intent_builder",
+        "OrderIntentBuilder": "order_intent_builder",
+        "Intent Builder": "intent_builder",
+        "Order Intent Builder": "order_intent_builder",
+        "Portfolio Construction": "portfolio_construction",
+    }
+
+    for created_by, expected_creator in expected_creators.items():
+        intent = OrderIntent(
+            intent_id=f"intent-{expected_creator}",
+            source_signal_id="sig-1",
+            created_by=created_by,
+            symbol="BTC-USDT",
+            side=OrderSide.BUY,
+            order_type=OrderType.MARKET,
+            quantity=Decimal("0.001"),
+            limit_price=None,
+            time_in_force=TimeInForce.IOC,
+            trading_mode=TradingMode.PAPER,
+            execution_venue=ExecutionVenue.PAPER,
+            leverage=Decimal("1"),
+            reduce_only=False,
+            close_only=False,
+            post_only=False,
+            created_at=NOW,
+            metadata={},
+        )
+
+        assert intent.created_by == expected_creator
+
+
 def test_order_intent_rejects_unknown_runtime_enum_values() -> None:
     valid_args = {
         "intent_id": "intent-1",
