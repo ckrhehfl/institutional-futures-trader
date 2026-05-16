@@ -46,7 +46,6 @@ PRE_EXECUTION_STATUSES = frozenset(
     {
         OrderStatus.CREATED,
         OrderStatus.PENDING_RISK,
-        OrderStatus.RISK_REJECTED,
         OrderStatus.RISK_APPROVED,
         OrderStatus.ACCEPTED,
     }
@@ -183,6 +182,8 @@ class Order:
         ensure_non_negative_decimal("filled_quantity", self.filled_quantity)
         if self.close_only and not self.reduce_only:
             raise ValueError("close-only requires reduce-only")
+        if status == OrderStatus.RISK_REJECTED:
+            raise ValueError("risk-rejected intents must not become orders")
         if self.filled_quantity > self.quantity:
             raise ValueError("filled_quantity must not exceed quantity")
         if status in PRE_EXECUTION_STATUSES and self.filled_quantity != Decimal("0"):
