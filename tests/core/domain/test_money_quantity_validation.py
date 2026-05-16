@@ -292,6 +292,29 @@ def test_filled_order_must_have_no_remaining_quantity() -> None:
         replace(order, filled_quantity=Decimal("0.0005"))
 
 
+def test_complete_fills_require_filled_status() -> None:
+    for status in [OrderStatus.CANCELED, OrderStatus.REJECTED, OrderStatus.EXPIRED]:
+        with pytest.raises(ValueError, match="complete filled quantity requires filled status"):
+            Order(
+                order_id=f"order-{status.value}",
+                intent_id="intent-1",
+                symbol="BTC-USDT",
+                side=OrderSide.BUY,
+                order_type=OrderType.LIMIT,
+                status=status,
+                quantity=Decimal("0.001"),
+                filled_quantity=Decimal("0.001"),
+                limit_price=Decimal("100000"),
+                time_in_force=TimeInForce.GTC,
+                reduce_only=False,
+                close_only=False,
+                post_only=False,
+                created_at=NOW,
+                updated_at=NOW,
+                metadata={},
+            )
+
+
 def test_partially_filled_order_requires_partial_quantity() -> None:
     order = Order(
         order_id="order-1",

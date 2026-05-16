@@ -176,6 +176,8 @@ class Order:
             raise ValueError("partially filled order requires partial filled quantity")
         if status in TERMINAL_FILLED_STATUSES and self.filled_quantity != self.quantity:
             raise ValueError("filled order must have no remaining quantity")
+        if status not in TERMINAL_FILLED_STATUSES and self.filled_quantity == self.quantity:
+            raise ValueError("complete filled quantity requires filled status")
         if order_type in UNSUPPORTED_STOP_ORDER_TYPES:
             raise ValueError("stop order types are not supported until trigger_price is modeled")
         if order_type in LIMIT_PRICE_ORDER_TYPES and self.limit_price is None:
