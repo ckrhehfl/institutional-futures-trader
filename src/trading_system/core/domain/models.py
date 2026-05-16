@@ -176,6 +176,11 @@ class Order:
             raise ValueError("partially filled order requires partial filled quantity")
         if status in TERMINAL_FILLED_STATUSES and self.filled_quantity != self.quantity:
             raise ValueError("filled order must have no remaining quantity")
+        if (
+            status != OrderStatus.PARTIALLY_FILLED
+            and Decimal("0") < self.filled_quantity < self.quantity
+        ):
+            raise ValueError("partial filled quantity requires partial status")
         if status not in TERMINAL_FILLED_STATUSES and self.filled_quantity == self.quantity:
             raise ValueError("complete filled quantity requires filled status")
         if order_type in UNSUPPORTED_STOP_ORDER_TYPES:
@@ -308,6 +313,10 @@ class Position:
                 raise ValueError("flat position quantity must be zero")
             if self.entry_price not in {None, Decimal("0")}:
                 raise ValueError("flat position entry_price must be absent or zero")
+            if self.maintenance_margin != Decimal("0"):
+                raise ValueError("flat position maintenance_margin must be zero")
+            if self.liquidation_price is not None:
+                raise ValueError("flat position liquidation_price must be absent")
         else:
             if self.quantity == Decimal("0"):
                 raise ValueError("non-flat position quantity must be positive")

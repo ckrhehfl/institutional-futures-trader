@@ -357,6 +357,35 @@ def test_partially_filled_order_requires_partial_quantity() -> None:
     assert raw_status_order.status is OrderStatus.PARTIALLY_FILLED
 
 
+def test_partial_fills_require_partial_fill_status() -> None:
+    for status in [
+        OrderStatus.SUBMITTED,
+        OrderStatus.CANCELED,
+        OrderStatus.REJECTED,
+        OrderStatus.EXPIRED,
+        OrderStatus.UNKNOWN,
+    ]:
+        with pytest.raises(ValueError, match="partial filled quantity requires partial status"):
+            Order(
+                order_id=f"order-{status.value}",
+                intent_id="intent-1",
+                symbol="BTC-USDT",
+                side=OrderSide.BUY,
+                order_type=OrderType.LIMIT,
+                status=status,
+                quantity=Decimal("0.001"),
+                filled_quantity=Decimal("0.0005"),
+                limit_price=Decimal("100000"),
+                time_in_force=TimeInForce.GTC,
+                reduce_only=False,
+                close_only=False,
+                post_only=False,
+                created_at=NOW,
+                updated_at=NOW,
+                metadata={},
+            )
+
+
 def test_order_updated_at_must_not_predate_created_at() -> None:
     with pytest.raises(ValueError, match="updated_at must not predate created_at"):
         Order(
@@ -550,3 +579,9 @@ def test_flat_position_can_represent_zero_exposure() -> None:
 
     with pytest.raises(ValueError, match="flat position quantity must be zero"):
         replace(flat_without_entry, quantity=Decimal("0.001"))
+
+    with pytest.raises(ValueError, match="flat position maintenance_margin must be zero"):
+        replace(flat_without_entry, maintenance_margin=Decimal("5"))
+
+    with pytest.raises(ValueError, match="flat position liquidation_price must be absent"):
+        replace(flat_without_entry, liquidation_price=Decimal("90000"))
