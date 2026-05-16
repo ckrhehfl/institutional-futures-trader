@@ -33,7 +33,7 @@ def test_core_domain_does_not_contain_exchange_specific_field_or_client_terms() 
 
 
 def test_exchange_specific_metadata_terms_only_exist_in_validator_allowlist() -> None:
-    allowed_terms = ["bingx", "api_key", "secret", "token", "payload", "response"]
+    allowed_terms = ["api_key", "secret", "token", "payload", "response"]
 
     scanned = {
         path: path.read_text(encoding="utf-8")
@@ -46,6 +46,18 @@ def test_exchange_specific_metadata_terms_only_exist_in_validator_allowlist() ->
         for path, content in scanned.items()
         for term in allowed_terms
         if term in content
+    ]
+
+    assert violations == []
+
+
+def test_core_domain_validation_has_no_bingx_specific_rules() -> None:
+    scanned = {path: path.read_text(encoding="utf-8") for path in DOMAIN_ROOT.rglob("*.py")}
+
+    violations = [
+        path.relative_to(ROOT).as_posix()
+        for path, content in scanned.items()
+        if "bingx" in content.lower()
     ]
 
     assert violations == []

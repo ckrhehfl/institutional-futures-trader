@@ -42,18 +42,18 @@ def test_timezone_validation_requires_aware_datetime() -> None:
 
 
 def test_metadata_rejects_exchange_specific_payloads() -> None:
-    assert "bingx" in FORBIDDEN_METADATA_KEYS
+    assert "exchange_response" in FORBIDDEN_METADATA_KEYS
     metadata = metadata_without_exchange_payload({"source": "paper"})
     assert metadata == {"source": "paper"}
     assert isinstance(metadata, MappingProxyType)
 
-    for key in ["raw", "payload", "response", "bingx", "exchange_response", "api_key"]:
+    for key in ["raw", "payload", "response", "exchange_response", "api_key"]:
         with pytest.raises(ValueError, match="metadata must not contain exchange-specific"):
             metadata_without_exchange_payload({key: "not allowed"})
 
 
 def test_metadata_rejects_compound_exchange_payload_keys() -> None:
-    for key in ["exchange_response_code", "rawPayloadId", "bingx_order_id"]:
+    for key in ["exchange_response_code", "rawPayloadId", "exchange_order_id"]:
         with pytest.raises(ValueError, match="metadata must not contain exchange-specific"):
             metadata_without_exchange_payload({key: "not allowed"})
 
@@ -67,7 +67,7 @@ def test_metadata_rejects_secret_key_spelling_variants() -> None:
         "api_secret",
         "secretKey",
         "accessToken",
-        "BINGX_API_SECRET",
+        "EXCHANGE_API_SECRET",
         "account-id",
         "accountId",
         "ACCOUNT_ID",
@@ -86,11 +86,11 @@ def test_metadata_rejects_secret_key_spelling_variants() -> None:
         "apisecret",
         "secretkey",
         "withdrawaladdress",
-        "BINGXAPIKEY",
-        "BINGXAPISECRET",
-        "BINGXACCOUNTID",
-        "BINGXACCESSTOKEN",
-        "BINGXWALLETADDRESS",
+        "EXCHANGEAPIKEY",
+        "EXCHANGEAPISECRET",
+        "EXCHANGEACCOUNTID",
+        "EXCHANGEACCESSTOKEN",
+        "EXCHANGEWALLETADDRESS",
     ]:
         with pytest.raises(ValueError, match="metadata must not contain exchange-specific"):
             metadata_without_exchange_payload({key: "not allowed"})

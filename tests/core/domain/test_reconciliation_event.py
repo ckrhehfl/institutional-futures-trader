@@ -102,7 +102,7 @@ def test_reconciliation_event_records_drift_without_raw_payload() -> None:
             exchange_snapshot_ref="snapshot-1",
             drift_summary="bad metadata",
             requires_manual_review=True,
-            metadata={"bingx": "not allowed"},
+            metadata={"exchange_response": "not allowed"},
         )
 
 
