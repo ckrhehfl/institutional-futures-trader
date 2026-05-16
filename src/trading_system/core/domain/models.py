@@ -33,6 +33,9 @@ ORDER_INTENT_CREATORS = frozenset(
 LIMIT_PRICE_ORDER_TYPES = frozenset({OrderType.LIMIT})
 UNSUPPORTED_STOP_ORDER_TYPES = frozenset({OrderType.STOP, OrderType.STOP_LIMIT})
 TERMINAL_FILLED_STATUSES = frozenset({OrderStatus.FILLED})
+PARTIAL_FILL_STATUSES = frozenset(
+    {OrderStatus.PARTIALLY_FILLED, OrderStatus.CANCELED, OrderStatus.EXPIRED}
+)
 PRE_EXECUTION_STATUSES = frozenset(
     {
         OrderStatus.CREATED,
@@ -177,7 +180,7 @@ class Order:
         if status in TERMINAL_FILLED_STATUSES and self.filled_quantity != self.quantity:
             raise ValueError("filled order must have no remaining quantity")
         if (
-            status != OrderStatus.PARTIALLY_FILLED
+            status not in PARTIAL_FILL_STATUSES
             and Decimal("0") < self.filled_quantity < self.quantity
         ):
             raise ValueError("partial filled quantity requires partial status")

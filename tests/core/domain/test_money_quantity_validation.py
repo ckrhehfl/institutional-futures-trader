@@ -360,9 +360,7 @@ def test_partially_filled_order_requires_partial_quantity() -> None:
 def test_partial_fills_require_partial_fill_status() -> None:
     for status in [
         OrderStatus.SUBMITTED,
-        OrderStatus.CANCELED,
         OrderStatus.REJECTED,
-        OrderStatus.EXPIRED,
         OrderStatus.UNKNOWN,
     ]:
         with pytest.raises(ValueError, match="partial filled quantity requires partial status"):
@@ -384,6 +382,30 @@ def test_partial_fills_require_partial_fill_status() -> None:
                 updated_at=NOW,
                 metadata={},
             )
+
+
+def test_terminal_canceled_or_expired_orders_can_retain_partial_fills() -> None:
+    for status in [OrderStatus.CANCELED, OrderStatus.EXPIRED]:
+        order = Order(
+            order_id=f"order-{status.value}",
+            intent_id="intent-1",
+            symbol="BTC-USDT",
+            side=OrderSide.BUY,
+            order_type=OrderType.LIMIT,
+            status=status,
+            quantity=Decimal("0.001"),
+            filled_quantity=Decimal("0.0005"),
+            limit_price=Decimal("100000"),
+            time_in_force=TimeInForce.GTC,
+            reduce_only=False,
+            close_only=False,
+            post_only=False,
+            created_at=NOW,
+            updated_at=NOW,
+            metadata={},
+        )
+
+        assert order.remaining_quantity == Decimal("0.0005")
 
 
 def test_order_updated_at_must_not_predate_created_at() -> None:
