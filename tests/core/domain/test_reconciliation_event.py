@@ -49,6 +49,19 @@ def test_risk_decision_rejects_unknown_status() -> None:
         )
 
 
+def test_risk_decision_requires_non_empty_reason() -> None:
+    for reason in ["", "   "]:
+        with pytest.raises(ValueError, match="reason must not be blank"):
+            RiskDecision(
+                decision_id="risk-1",
+                intent_id="intent-1",
+                status=RiskDecisionStatus.REQUIRES_REVIEW,
+                reason=reason,
+                decided_at=NOW,
+                metadata={},
+            )
+
+
 def test_reconciliation_event_records_drift_without_raw_payload() -> None:
     event = ReconciliationEvent(
         event_id="recon-1",
@@ -90,6 +103,21 @@ def test_reconciliation_event_records_drift_without_raw_payload() -> None:
             drift_summary="bad metadata",
             requires_manual_review=True,
             metadata={"bingx": "not allowed"},
+        )
+
+
+def test_reconciliation_requires_review_status_sets_manual_review_flag() -> None:
+    with pytest.raises(ValueError, match="requires_manual_review must be true"):
+        ReconciliationEvent(
+            event_id="recon-1",
+            status=ReconciliationStatus.REQUIRES_REVIEW,
+            symbol="BTC-USDT",
+            occurred_at=NOW,
+            internal_state_ref="internal-position-1",
+            exchange_snapshot_ref="snapshot-1",
+            drift_summary="manual review required",
+            requires_manual_review=False,
+            metadata={},
         )
 
 

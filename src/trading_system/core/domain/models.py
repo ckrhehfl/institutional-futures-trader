@@ -333,6 +333,8 @@ class RiskDecision:
     def __post_init__(self) -> None:
         status = RiskDecisionStatus(self.status)
         object.__setattr__(self, "status", status)
+        if not self.reason.strip():
+            raise ValueError("reason must not be blank")
         ensure_timezone_aware("decided_at", self.decided_at)
         object.__setattr__(self, "metadata", safe_metadata(self.metadata))
 
@@ -352,5 +354,7 @@ class ReconciliationEvent:
     def __post_init__(self) -> None:
         status = ReconciliationStatus(self.status)
         object.__setattr__(self, "status", status)
+        if status == ReconciliationStatus.REQUIRES_REVIEW and not self.requires_manual_review:
+            raise ValueError("requires_manual_review must be true when status requires review")
         ensure_timezone_aware("occurred_at", self.occurred_at)
         object.__setattr__(self, "metadata", safe_metadata(self.metadata))
