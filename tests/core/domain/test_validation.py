@@ -52,6 +52,12 @@ def test_metadata_rejects_exchange_specific_payloads() -> None:
             metadata_without_exchange_payload({key: "not allowed"})
 
 
+def test_metadata_rejects_compound_exchange_payload_keys() -> None:
+    for key in ["exchange_response_code", "rawPayloadId", "bingx_order_id"]:
+        with pytest.raises(ValueError, match="metadata must not contain exchange-specific"):
+            metadata_without_exchange_payload({key: "not allowed"})
+
+
 def test_metadata_rejects_secret_key_spelling_variants() -> None:
     for key in [
         "api-key",
@@ -84,6 +90,7 @@ def test_metadata_rejects_secret_key_spelling_variants() -> None:
         "BINGXAPISECRET",
         "BINGXACCOUNTID",
         "BINGXACCESSTOKEN",
+        "BINGXWALLETADDRESS",
     ]:
         with pytest.raises(ValueError, match="metadata must not contain exchange-specific"):
             metadata_without_exchange_payload({key: "not allowed"})

@@ -23,7 +23,20 @@ FORBIDDEN_METADATA_KEYS = frozenset(
     }
 )
 FORBIDDEN_METADATA_TOKENS = frozenset(
-    {"account", "address", "api", "secret", "token", "wallet", "withdrawal"}
+    {
+        "account",
+        "address",
+        "api",
+        "bingx",
+        "exchange",
+        "payload",
+        "raw",
+        "response",
+        "secret",
+        "token",
+        "wallet",
+        "withdrawal",
+    }
 )
 FORBIDDEN_COMPACT_METADATA_KEYS = frozenset(
     {
@@ -38,7 +51,15 @@ FORBIDDEN_COMPACT_METADATA_KEYS = frozenset(
     }
 )
 FORBIDDEN_COMPACT_METADATA_SUBSTRINGS = frozenset(
-    {"accountid", "accesstoken", "apikey", "apisecret", "secretkey", "withdrawaladdress"}
+    {
+        "accountid",
+        "accesstoken",
+        "apikey",
+        "apisecret",
+        "secretkey",
+        "walletaddress",
+        "withdrawaladdress",
+    }
 )
 
 
