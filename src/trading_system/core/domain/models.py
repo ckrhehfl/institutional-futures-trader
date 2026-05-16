@@ -30,6 +30,7 @@ from trading_system.core.domain.validation import (
 ORDER_INTENT_CREATORS = frozenset(
     {"intent_builder", "order_intent_builder", "portfolio_construction"}
 )
+SIGNAL_CONFIDENCE_LABELS = frozenset({"low", "medium", "high"})
 LIMIT_PRICE_ORDER_TYPES = frozenset({OrderType.LIMIT})
 UNSUPPORTED_STOP_ORDER_TYPES = frozenset({OrderType.STOP, OrderType.STOP_LIMIT})
 TERMINAL_FILLED_STATUSES = frozenset({OrderStatus.FILLED})
@@ -58,7 +59,7 @@ class Signal:
     symbol: str
     created_at: datetime
     source: str
-    confidence: Decimal | None = None
+    confidence: Decimal | str | None = None
     regime: str | None = None
     sizing_suggestion: Decimal | None = None
     metadata: Mapping[str, MetadataValue] = field(default_factory=dict)
@@ -66,7 +67,11 @@ class Signal:
     def __post_init__(self) -> None:
         ensure_timezone_aware("created_at", self.created_at)
         if self.confidence is not None:
-            ensure_non_negative_decimal("confidence", self.confidence)
+            if isinstance(self.confidence, str):
+                if self.confidence not in SIGNAL_CONFIDENCE_LABELS:
+                    raise ValueError("confidence label must be low, medium, or high")
+            else:
+                ensure_non_negative_decimal("confidence", self.confidence)
         if self.sizing_suggestion is not None:
             ensure_non_negative_decimal("sizing_suggestion", self.sizing_suggestion)
         object.__setattr__(self, "metadata", safe_metadata(self.metadata))

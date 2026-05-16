@@ -51,6 +51,22 @@ def test_signal_allows_zero_valued_advisories() -> None:
     assert signal.sizing_suggestion == Decimal("0")
 
 
+def test_signal_allows_qualitative_confidence_labels() -> None:
+    for confidence in ["low", "medium", "high"]:
+        signal = Signal(
+            signal_id=f"sig-{confidence}",
+            symbol="BTC-USDT",
+            created_at=NOW,
+            source="example-strategy",
+            confidence=confidence,
+            regime="neutral",
+            sizing_suggestion=Decimal("0"),
+            metadata={"mode": "paper"},
+        )
+
+        assert signal.confidence == confidence
+
+
 def test_order_intent_is_created_for_risk_review_not_execution() -> None:
     intent = OrderIntent(
         intent_id="intent-1",
