@@ -38,7 +38,7 @@ def test_domain_event_rejects_exchange_payload_or_secret_bearing_data() -> None:
         {"raw_payload": "{}"},
         {"exchange_response": "ok"},
         {"account_id": "acct-1"},
-        {"api_key": "not-a-real-key"},
+        {"api_key": "not-a-real-key"},  # pragma: allowlist secret
     ]:
         with pytest.raises(ValueError, match="data must not contain exchange-specific"):
             DomainEvent(
