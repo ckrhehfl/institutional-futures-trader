@@ -23,7 +23,7 @@
 - strategy/ML 구현
 - paper/demo/live runtime 구현
 
-## 2. Agent Workflow / Review Scope Guidance - this PR
+## 2. Agent Workflow / Review Scope Guidance - PR #3
 
 목표:
 
@@ -39,7 +39,7 @@
 - 선행 scaffold/domain PR의 필요성을 부정하거나 건너뛰지 않습니다.
 - trading engine, OMS, Risk Engine, exchange adapter, strategy, ML, live trading 추가
 
-## 3. PR Review Loop Lessons / Compound Learning Guardrails - this PR
+## 3. PR Review Loop Lessons / Compound Learning Guardrails - PR #5
 
 목표:
 

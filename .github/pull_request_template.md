@@ -27,7 +27,7 @@
 
 - What repeated mistake or durable lesson came from this PR?
 - Where was the prevention added: test, `AGENTS.md`, PR template, docs, playbook, CI/checklist, or follow-up?
-- Was `/ce-compound` run, or was a manual compound note added?
+- Is `/ce-compound` planned after merge, or was a manual compound note added in this PR?
 
 ## This PR intentionally does not implement...
 
