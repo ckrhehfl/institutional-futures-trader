@@ -36,11 +36,7 @@ def test_env_file_is_not_present_and_template_is_allowed() -> None:
 def test_env_example_contains_no_real_looking_secrets() -> None:
     env_example = (ROOT / ".env.example").read_text(encoding="utf-8")
 
-    matches = [
-        pattern.pattern
-        for pattern in SECRET_PATTERNS
-        if pattern.search(env_example)
-    ]
+    matches = [pattern.pattern for pattern in SECRET_PATTERNS if pattern.search(env_example)]
 
     assert matches == []
     assert "TRADING_MODE=paper" in env_example

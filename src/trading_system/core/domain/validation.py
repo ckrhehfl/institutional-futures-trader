@@ -114,15 +114,10 @@ def metadata_without_exchange_payload(
         for substring in FORBIDDEN_COMPACT_METADATA_SUBSTRINGS
         if substring in key
     }
-    forbidden_tokens = {
-        token for key in normalized_keys for token in key.split("_")
-    }.intersection(FORBIDDEN_METADATA_TOKENS)
-    if (
-        forbidden_keys
-        or forbidden_compact_keys
-        or forbidden_compact_substrings
-        or forbidden_tokens
-    ):
+    forbidden_tokens = {token for key in normalized_keys for token in key.split("_")}.intersection(
+        FORBIDDEN_METADATA_TOKENS
+    )
+    if forbidden_keys or forbidden_compact_keys or forbidden_compact_substrings or forbidden_tokens:
         raise ValueError("metadata must not contain exchange-specific payload keys")
     ensure_metadata_values_are_primitive(metadata)
     return MappingProxyType(dict(metadata))
