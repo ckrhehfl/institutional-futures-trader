@@ -67,7 +67,7 @@ def test_risk_evaluation_request_rejects_secret_or_exchange_payload_metadata() -
         {"raw_payload": "{}"},
         {"exchange_response": "ok"},
         {"account_id": "acct-1"},
-        {"api_key": "not-a-real-key"},
+        {"api_key": "not-a-real-key"},  # pragma: allowlist secret
     ]:
         with pytest.raises(ValueError, match="metadata must not contain exchange-specific"):
             RiskEvaluationRequest(
