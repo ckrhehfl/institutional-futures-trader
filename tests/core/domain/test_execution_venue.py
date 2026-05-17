@@ -43,8 +43,7 @@ def test_paper_demo_backtest_venues_are_separate() -> None:
         is ExecutionVenue.BACKTEST
     )
     assert (
-        make_intent(TradingMode.PAPER, ExecutionVenue.PAPER).execution_venue
-        is ExecutionVenue.PAPER
+        make_intent(TradingMode.PAPER, ExecutionVenue.PAPER).execution_venue is ExecutionVenue.PAPER
     )
     assert make_intent(TradingMode.DEMO, ExecutionVenue.DEMO).execution_venue is ExecutionVenue.DEMO
 
