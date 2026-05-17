@@ -117,10 +117,16 @@ Codex review는 다음에 집중합니다.
 ## PR Scope Rules
 
 - 한 PR은 하나의 계층만 다룹니다.
+- PR 시작 전 PR template의 Scope, Non-goals, Allowed files / layers를 채웁니다.
 - 버그성 리뷰는 같은 PR에서 처리합니다.
 - 범위 밖 개선 제안은 후속 PR로 남깁니다.
 - P1/P2라도 현재 PR 범위 밖이면 owner 판단을 요청하거나 follow-up으로 정리합니다.
 - PR 설명에는 Scope와 Non-goals를 반드시 적습니다.
+- 리뷰가 달리면 `docs/PR_REVIEW_PLAYBOOK.md` 기준으로 먼저 분류합니다.
+- 구현 PR은 PR 생성 전 또는 merge 전에 Superpowers code review를 실행합니다.
+- PR 종료 후 `/ce-compound` 또는 수동 compound learning note를 실행합니다.
+- 반복 리뷰 피드백은 test, AGENTS.md, PR template, docs, playbook 중 하나로 반영합니다.
+- 새 커스텀 skill은 같은 긴 프롬프트가 3번 이상 반복될 때만 검토합니다.
 
 ## Documentation Rules
 

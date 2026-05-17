@@ -39,7 +39,23 @@
 - 선행 scaffold/domain PR의 필요성을 부정하거나 건너뛰지 않습니다.
 - trading engine, OMS, Risk Engine, exchange adapter, strategy, ML, live trading 추가
 
-## 3. Domain Events v0
+## 3. PR Review Loop Lessons / Compound Learning Guardrails - this PR
+
+목표:
+
+- PR #2, PR #3, PR #4의 review loop와 scope 판단 교훈을 `docs/solutions/`에 기록합니다.
+- 리뷰 코멘트 분류와 처리 기준을 `docs/PR_REVIEW_PLAYBOOK.md`에 정리합니다.
+- PR template에 Scope, Non-goals, Allowed files / layers, Validation, Compound learning note를 추가합니다.
+- AGENTS.md에 review triage와 compound learning loop를 짧게 반영합니다.
+
+이번 단계에서 하지 않는 것:
+
+- Python code 변경
+- `pyproject.toml`, `src/trading_system`, `tests` 변경
+- trading engine, OMS, Risk Engine, exchange adapter, REST/WebSocket, strategy, ML, live trading 구현
+- custom skill 생성
+
+## 4. Domain Events v0 - next implementation step
 
 목표:
 
@@ -55,7 +71,7 @@
 - exchange-specific event translation 구현
 - live/demo/paper execution path 구현
 
-## 4. Risk Engine Interface Only
+## 5. Risk Engine Interface Only
 
 목표:
 
@@ -71,7 +87,7 @@
 - exchange adapter integration
 - strategy/ML sizing logic
 
-## 5. OMS State Machine
+## 6. OMS State Machine
 
 목표:
 
@@ -87,7 +103,7 @@
 - full trading engine runtime
 - persistence runtime 확장
 
-## 6. Backtest / Historical Replay
+## 7. Backtest / Historical Replay
 
 목표:
 
@@ -103,7 +119,7 @@
 - production deployment
 - live capital에 영향을 주는 runtime decision path
 
-## 7. PaperExecutionVenue
+## 8. PaperExecutionVenue
 
 목표:
 
@@ -119,7 +135,7 @@
 - production deployment
 - strategy 또는 ML alpha implementation
 
-## 8. BingX Adapter Contract Tests
+## 9. BingX Adapter Contract Tests
 
 목표:
 
@@ -135,7 +151,7 @@
 - live order submission
 - production adapter deployment
 
-## 9. Demo Trading Integration
+## 10. Demo Trading Integration
 
 목표:
 
@@ -151,7 +167,7 @@
 - 검증되지 않은 strategy/ML 자동 주문
 - production deployment
 
-## 10. Live Trading Gate, Only After Explicit Approval
+## 11. Live Trading Gate, Only After Explicit Approval
 
 목표:
 
