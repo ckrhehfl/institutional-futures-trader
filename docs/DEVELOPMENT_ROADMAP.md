@@ -71,7 +71,7 @@
 - exchange-specific event translation 구현
 - live/demo/paper execution path 구현
 
-## 5. Risk Engine Interface Only
+## 5. Risk Engine Interface Only - current implementation step
 
 목표:
 
