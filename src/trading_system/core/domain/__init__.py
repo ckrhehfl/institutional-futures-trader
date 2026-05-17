@@ -13,6 +13,7 @@ from trading_system.core.domain.enums import (
     TimeInForce,
     TradingMode,
 )
+from trading_system.core.domain.events import DomainEvent
 from trading_system.core.domain.models import (
     Fee,
     Fill,
@@ -27,6 +28,7 @@ from trading_system.core.domain.models import (
 )
 
 __all__ = [
+    "DomainEvent",
     "ExecutionVenue",
     "MarginMode",
     "OrderSide",
