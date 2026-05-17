@@ -19,6 +19,7 @@ venv/
 .env
 .env.*
 !.env.example
+.compound-engineering/config.local.yaml
 
 # Editor and OS files
 .idea/
