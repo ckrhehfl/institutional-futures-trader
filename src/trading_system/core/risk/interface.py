@@ -28,6 +28,8 @@ class RiskEvaluationRequest:
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "request_id", ensure_non_blank("request_id", self.request_id))
+        if not isinstance(self.order_intent, OrderIntent):
+            raise ValueError("order_intent must be an OrderIntent")
         ensure_timezone_aware("requested_at", self.requested_at)
         object.__setattr__(self, "metadata", safe_metadata(self.metadata))
 

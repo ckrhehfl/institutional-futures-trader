@@ -96,6 +96,16 @@ def test_risk_evaluation_request_requires_stable_id_and_timestamp() -> None:
         )
 
 
+def test_risk_evaluation_request_requires_order_intent_instance() -> None:
+    with pytest.raises(ValueError, match="order_intent must be an OrderIntent"):
+        RiskEvaluationRequest(
+            request_id="risk-request-1",
+            order_intent={"intent_id": "intent-1"},  # type: ignore[arg-type]
+            requested_at=NOW,
+            metadata={},
+        )
+
+
 def test_risk_engine_protocol_returns_existing_risk_decision_type() -> None:
     class ManualReviewRiskEngine:
         def evaluate(self, request: RiskEvaluationRequest) -> RiskDecision:
