@@ -102,7 +102,7 @@ jobs:
           openai-api-key: ${{ secrets.OPENAI_API_KEY }}
           prompt-file: .ai-review-gate/prompt.md
           sandbox: read-only
-          safety-strategy: read-only
+          safety-strategy: drop-sudo
         continue-on-error: true
 
       - name: Write Codex JSON report
@@ -150,39 +150,57 @@ jobs:
           import json
           from pathlib import Path
 
+          VALID_VERDICTS = {"PASS", "FAIL", "NEEDS_OWNER_POLICY"}
+
+          FALLBACK_REPORT = {
+              "verdict": "NEEDS_OWNER_POLICY",
+              "report_only": True,
+              "summary": "AI Review Gate produced invalid JSON shape and was normalized to a report-only owner decision.",
+              "findings": [
+                  {
+                      "severity": "P2",
+                      "classification": "OWNER_DECISION_REQUIRED",
+                      "file": None,
+                      "reason": "The Codex report did not match the expected JSON object contract.",
+                      "recommended_action": "Inspect the raw workflow logs and keep this gate report-only until output stability is proven.",
+                  }
+              ],
+              "checks": {
+                  "allowed_files": "needs_review",
+                  "non_goals": "needs_review",
+                  "sensitive_data": "needs_review",
+                  "live_boundary": "needs_review",
+                  "exchange_independence": "needs_review",
+                  "runtime_validation": "needs_review",
+                  "negative_tests": "needs_review",
+                  "review_triage": "needs_review",
+              },
+              "owner_decision_required": True,
+          }
+
           path = Path("ai-review-gate-report.json")
           try:
-              json.loads(path.read_text(encoding="utf-8"))
+              report = json.loads(path.read_text(encoding="utf-8"))
           except Exception:
-              path.write_text(
-                  """{
-            "verdict": "NEEDS_OWNER_POLICY",
-            "report_only": true,
-            "summary": "AI Review Gate produced invalid JSON and was normalized to a report-only owner decision.",
-            "findings": [
-              {
-                "severity": "P2",
-                "classification": "OWNER_DECISION_REQUIRED",
-                "file": null,
-                "reason": "The Codex report did not match the expected JSON contract.",
-                "recommended_action": "Inspect the raw workflow logs and keep this gate report-only until output stability is proven."
-              }
-            ],
-            "checks": {
-              "allowed_files": "needs_review",
-              "non_goals": "needs_review",
-              "sensitive_data": "needs_review",
-              "live_boundary": "needs_review",
-              "exchange_independence": "needs_review",
-              "runtime_validation": "needs_review",
-              "negative_tests": "needs_review",
-              "review_triage": "needs_review"
-            },
-            "owner_decision_required": true
-          }
-          """,
-                  encoding="utf-8",
-              )
+              path.write_text(json.dumps(FALLBACK_REPORT, indent=2) + "\n", encoding="utf-8")
+              raise SystemExit(0)
+
+          if not isinstance(report, dict):
+              path.write_text(json.dumps(FALLBACK_REPORT, indent=2) + "\n", encoding="utf-8")
+              raise SystemExit(0)
+
+          if report.get("verdict") not in VALID_VERDICTS:
+              path.write_text(json.dumps(FALLBACK_REPORT, indent=2) + "\n", encoding="utf-8")
+              raise SystemExit(0)
+
+          findings = report.get("findings")
+          if not isinstance(findings, list):
+              path.write_text(json.dumps(FALLBACK_REPORT, indent=2) + "\n", encoding="utf-8")
+              raise SystemExit(0)
+
+          if any(not isinstance(finding, dict) for finding in findings):
+              path.write_text(json.dumps(FALLBACK_REPORT, indent=2) + "\n", encoding="utf-8")
+              raise SystemExit(0)
           PY
 
       - name: Write job summary
