@@ -82,7 +82,7 @@ jobs:
             fi
           done
 
-          if ! changed_files="$(gh pr diff "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --name-only)"; then
+          if ! changed_files="$(gh api --paginate "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER/files" --jq '.[] | .filename, (.previous_filename // empty)')"; then
             echo "eligible=false" >> "$GITHUB_OUTPUT"
             echo "reason=changed-files-unavailable" >> "$GITHUB_OUTPUT"
             exit 0

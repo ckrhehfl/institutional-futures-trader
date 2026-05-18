@@ -55,6 +55,8 @@ A PR is eligible only when all of these are true:
   - `src/trading_system/adapters/exchanges/**`
   - files or paths directly related to live trading enablement, model live promotion, or risk cap changes
 
+For renamed files, both the previous path and current path must pass the high-risk exclusion check.
+
 If a same-repository PR is retargeted away from `main`, it becomes ineligible and the workflow may disable any existing GitHub auto-merge for that PR.
 
 ## Branch Protection and Required Checks
