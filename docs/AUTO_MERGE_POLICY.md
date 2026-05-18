@@ -39,9 +39,21 @@ A PR is eligible only when all of these are true:
 - The PR does not change high-risk files or paths:
   - `.github/workflows/**`
   - `.github/prompts/**`
+  - `AGENTS.md`
+  - `docs/AI_REVIEW_GATE.md`
+  - `docs/AUTO_MERGE_POLICY.md`
+  - `docs/PR_REVIEW_PLAYBOOK.md`
   - `docs/LIVE_TRADING_GATE.md`
-  - files or paths that look like secrets or credentials
-  - files or paths that look like live trading enablement, model live promotion, or risk cap changes
+  - `docs/DEVELOPMENT_ROADMAP.md`
+  - `.pre-commit-config.yaml`
+  - `pyproject.toml`
+  - `.secrets.baseline`
+  - `.env*`
+  - `**/*secret*`
+  - `**/*credential*`
+  - `**/*key*`
+  - `src/trading_system/adapters/exchanges/**`
+  - files or paths directly related to live trading enablement, model live promotion, or risk cap changes
 
 ## Branch Protection and Required Checks
 
