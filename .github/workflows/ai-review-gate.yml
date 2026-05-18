@@ -1,0 +1,227 @@
+name: AI Review Gate
+
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: ai-review-gate-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  report:
+    name: AI Review Gate (report-only)
+    runs-on: ubuntu-latest
+    env:
+      REVIEW_OUTPUT: ai-review-gate-report.json
+
+    steps:
+      - name: Check out pull request merge commit
+        uses: actions/checkout@v6
+        with:
+          ref: refs/pull/${{ github.event.pull_request.number }}/merge
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Fetch base and head refs
+        env:
+          PR_BASE_REF: ${{ github.event.pull_request.base.ref }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          git fetch --no-tags origin \
+            "+refs/heads/${PR_BASE_REF}:refs/remotes/origin/${PR_BASE_REF}" \
+            "+refs/pull/${PR_NUMBER}/head:refs/remotes/origin/pr-${PR_NUMBER}-head"
+
+      - name: Prepare trusted base review context
+        id: trusted_context
+        env:
+          PR_BASE_REF: ${{ github.event.pull_request.base.ref }}
+        run: |
+          mkdir -p .ai-review-gate
+          git show "origin/${PR_BASE_REF}:AGENTS.md" > .ai-review-gate/AGENTS.md
+          git show "origin/${PR_BASE_REF}:docs/PR_REVIEW_PLAYBOOK.md" > .ai-review-gate/PR_REVIEW_PLAYBOOK.md
+          git show "origin/${PR_BASE_REF}:docs/DEVELOPMENT_ROADMAP.md" > .ai-review-gate/DEVELOPMENT_ROADMAP.md
+          if git show "origin/${PR_BASE_REF}:.github/prompts/ai-review-gate.md" > .ai-review-gate/prompt.md; then
+            echo "prompt_available=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "prompt_available=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Check OpenAI key availability
+        id: openai_key
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          if [ -n "$OPENAI_API_KEY" ]; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "available=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Create skip report when AI review cannot run safely
+        if: steps.openai_key.outputs.available != 'true' || steps.trusted_context.outputs.prompt_available != 'true'
+        run: |
+          cat > "$REVIEW_OUTPUT" <<'JSON'
+          {
+            "verdict": "NEEDS_OWNER_POLICY",
+            "report_only": true,
+            "summary": "AI Review Gate skipped because OPENAI_API_KEY was unavailable or the trusted base prompt was not present.",
+            "findings": [
+              {
+                "severity": "P3",
+                "classification": "OWNER_DECISION_REQUIRED",
+                "file": null,
+                "reason": "The report-only AI review requires repository secrets and a trusted prompt loaded from the base branch.",
+                "recommended_action": "Confirm whether this event is expected to receive repository secrets and whether the base branch already contains the AI review prompt."
+              }
+            ],
+            "checks": {
+              "allowed_files": "needs_review",
+              "non_goals": "needs_review",
+              "sensitive_data": "needs_review",
+              "live_boundary": "needs_review",
+              "exchange_independence": "needs_review",
+              "runtime_validation": "needs_review",
+              "negative_tests": "needs_review",
+              "review_triage": "needs_review"
+            },
+            "owner_decision_required": true
+          }
+          JSON
+
+      - name: Run Codex AI review
+        if: steps.openai_key.outputs.available == 'true' && steps.trusted_context.outputs.prompt_available == 'true'
+        id: codex_review
+        uses: openai/codex-action@v1
+        with:
+          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
+          prompt-file: .ai-review-gate/prompt.md
+          sandbox: read-only
+          safety-strategy: read-only
+        continue-on-error: true
+
+      - name: Write Codex JSON report
+        if: steps.openai_key.outputs.available == 'true' && steps.trusted_context.outputs.prompt_available == 'true'
+        env:
+          CODEX_FINAL_MESSAGE: ${{ steps.codex_review.outputs.final-message }}
+        run: |
+          printf '%s\n' "$CODEX_FINAL_MESSAGE" > "$REVIEW_OUTPUT"
+
+      - name: Normalize missing Codex output
+        if: always() && hashFiles('ai-review-gate-report.json') == ''
+        run: |
+          cat > "$REVIEW_OUTPUT" <<'JSON'
+          {
+            "verdict": "NEEDS_OWNER_POLICY",
+            "report_only": true,
+            "summary": "AI Review Gate did not produce a JSON report.",
+            "findings": [
+              {
+                "severity": "P2",
+                "classification": "OWNER_DECISION_REQUIRED",
+                "file": null,
+                "reason": "The report-only workflow completed without the expected JSON artifact.",
+                "recommended_action": "Inspect the Codex action logs and keep this gate report-only until output stability is proven."
+              }
+            ],
+            "checks": {
+              "allowed_files": "needs_review",
+              "non_goals": "needs_review",
+              "sensitive_data": "needs_review",
+              "live_boundary": "needs_review",
+              "exchange_independence": "needs_review",
+              "runtime_validation": "needs_review",
+              "negative_tests": "needs_review",
+              "review_triage": "needs_review"
+            },
+            "owner_decision_required": true
+          }
+          JSON
+
+      - name: Normalize invalid Codex JSON
+        if: always()
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          path = Path("ai-review-gate-report.json")
+          try:
+              json.loads(path.read_text(encoding="utf-8"))
+          except Exception:
+              path.write_text(
+                  """{
+            "verdict": "NEEDS_OWNER_POLICY",
+            "report_only": true,
+            "summary": "AI Review Gate produced invalid JSON and was normalized to a report-only owner decision.",
+            "findings": [
+              {
+                "severity": "P2",
+                "classification": "OWNER_DECISION_REQUIRED",
+                "file": null,
+                "reason": "The Codex report did not match the expected JSON contract.",
+                "recommended_action": "Inspect the raw workflow logs and keep this gate report-only until output stability is proven."
+              }
+            ],
+            "checks": {
+              "allowed_files": "needs_review",
+              "non_goals": "needs_review",
+              "sensitive_data": "needs_review",
+              "live_boundary": "needs_review",
+              "exchange_independence": "needs_review",
+              "runtime_validation": "needs_review",
+              "negative_tests": "needs_review",
+              "review_triage": "needs_review"
+            },
+            "owner_decision_required": true
+          }
+          """,
+                  encoding="utf-8",
+              )
+          PY
+
+      - name: Write job summary
+        if: always()
+        run: |
+          echo "## AI Review Gate (report-only)" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          python - <<'PY' >> "$GITHUB_STEP_SUMMARY"
+          import json
+          from pathlib import Path
+
+          report = json.loads(Path("ai-review-gate-report.json").read_text(encoding="utf-8"))
+          print(f"- Verdict: `{report.get('verdict', 'NEEDS_OWNER_POLICY')}`")
+          print(f"- Report-only: `{report.get('report_only', True)}`")
+          print(f"- Owner decision required: `{report.get('owner_decision_required', False)}`")
+          print(f"- Summary: {report.get('summary', 'No summary provided.')}")
+          print("")
+          print("### Findings")
+          findings = report.get("findings", [])
+          if not findings:
+              print("- None")
+          for finding in findings:
+              severity = finding.get("severity", "P3")
+              classification = finding.get("classification", "OPTIONAL_OR_STYLE")
+              file_path = finding.get("file") or "n/a"
+              reason = finding.get("reason", "")
+              action = finding.get("recommended_action", "")
+              print(f"- `{severity}` `{classification}` `{file_path}`: {reason} Recommended action: {action}")
+          PY
+
+      - name: Upload raw JSON report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ai-review-gate-report
+          path: ${{ env.REVIEW_OUTPUT }}
+          if-no-files-found: error
+
+      - name: Keep report-only workflow non-blocking
+        if: always()
+        run: |
+          echo "AI Review Gate is report-only; verdicts do not fail this workflow."
