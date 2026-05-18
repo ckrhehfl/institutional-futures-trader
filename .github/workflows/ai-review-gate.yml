@@ -15,7 +15,7 @@ concurrency:
 
 jobs:
   report:
-    name: AI Review Gate (report-only)
+    name: AI Review Gate
     runs-on: ubuntu-latest
     env:
       REVIEW_OUTPUT: ai-review-gate-report.json
@@ -62,14 +62,14 @@ jobs:
           cat > "$REVIEW_OUTPUT" <<'JSON'
           {
             "verdict": "NEEDS_OWNER_POLICY",
-            "report_only": true,
+            "required_check_ready": true,
             "summary": "AI Review Gate skipped because the pull request could not be reviewed safely.",
             "findings": [
               {
                 "severity": "P3",
                 "classification": "OWNER_DECISION_REQUIRED",
                 "file": null,
-                "reason": "The report-only AI review only invokes Codex for same-repository pull requests with an available diff artifact.",
+                "reason": "The AI Review Gate only invokes Codex for same-repository pull requests with an available diff artifact.",
                 "recommended_action": "Review fork pull requests manually or inspect why the PR diff could not be collected as text data."
               }
             ],
@@ -111,15 +111,15 @@ jobs:
           cat > "$REVIEW_OUTPUT" <<'JSON'
           {
             "verdict": "NEEDS_OWNER_POLICY",
-            "report_only": true,
+            "required_check_ready": true,
             "summary": "AI Review Gate did not produce a JSON report.",
             "findings": [
               {
                 "severity": "P2",
                 "classification": "OWNER_DECISION_REQUIRED",
                 "file": null,
-                "reason": "The report-only workflow completed without the expected JSON artifact.",
-                "recommended_action": "Inspect the Codex action logs and keep this gate report-only until output stability is proven."
+                "reason": "The AI Review Gate completed without the expected JSON artifact.",
+                "recommended_action": "Inspect the Codex action logs before treating this gate as passing."
               }
             ],
             "checks": {
@@ -144,18 +144,28 @@ jobs:
           from pathlib import Path
 
           VALID_VERDICTS = {"PASS", "FAIL", "NEEDS_OWNER_POLICY"}
+          REQUIRED_CHECKS = {
+              "allowed_files",
+              "non_goals",
+              "sensitive_data",
+              "live_boundary",
+              "exchange_independence",
+              "runtime_validation",
+              "negative_tests",
+              "review_triage",
+          }
 
           FALLBACK_REPORT = {
               "verdict": "NEEDS_OWNER_POLICY",
-              "report_only": True,
-              "summary": "AI Review Gate produced invalid JSON shape and was normalized to a report-only owner decision.",
+              "required_check_ready": True,
+              "summary": "AI Review Gate produced invalid JSON shape and was normalized to an owner decision.",
               "findings": [
                   {
                       "severity": "P2",
                       "classification": "OWNER_DECISION_REQUIRED",
                       "file": None,
                       "reason": "The Codex report did not match the expected JSON object contract.",
-                      "recommended_action": "Inspect the raw workflow logs and keep this gate report-only until output stability is proven.",
+                      "recommended_action": "Inspect the raw workflow logs before treating this gate as passing.",
                   }
               ],
               "checks": {
@@ -194,12 +204,30 @@ jobs:
           if any(not isinstance(finding, dict) for finding in findings):
               path.write_text(json.dumps(FALLBACK_REPORT, indent=2) + "\n", encoding="utf-8")
               raise SystemExit(0)
+
+          if report.get("verdict") == "PASS":
+              checks = report.get("checks")
+              if not isinstance(checks, dict):
+                  path.write_text(json.dumps(FALLBACK_REPORT, indent=2) + "\n", encoding="utf-8")
+                  raise SystemExit(0)
+
+              if report.get("owner_decision_required") is not False:
+                  path.write_text(json.dumps(FALLBACK_REPORT, indent=2) + "\n", encoding="utf-8")
+                  raise SystemExit(0)
+
+              if set(checks) != REQUIRED_CHECKS:
+                  path.write_text(json.dumps(FALLBACK_REPORT, indent=2) + "\n", encoding="utf-8")
+                  raise SystemExit(0)
+
+              if any(value != "pass" for value in checks.values()):
+                  path.write_text(json.dumps(FALLBACK_REPORT, indent=2) + "\n", encoding="utf-8")
+                  raise SystemExit(0)
           PY
 
       - name: Write job summary
         if: always()
         run: |
-          echo "## AI Review Gate (report-only)" >> "$GITHUB_STEP_SUMMARY"
+          echo "## AI Review Gate" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
           python - <<'PY' >> "$GITHUB_STEP_SUMMARY"
           import json
@@ -207,7 +235,7 @@ jobs:
 
           report = json.loads(Path("ai-review-gate-report.json").read_text(encoding="utf-8"))
           print(f"- Verdict: `{report.get('verdict', 'NEEDS_OWNER_POLICY')}`")
-          print(f"- Report-only: `{report.get('report_only', True)}`")
+          print(f"- Required-check-ready: `{report.get('required_check_ready', True)}`")
           print(f"- Owner decision required: `{report.get('owner_decision_required', False)}`")
           print(f"- Summary: {report.get('summary', 'No summary provided.')}")
           print("")
@@ -232,7 +260,37 @@ jobs:
           path: ${{ env.REVIEW_OUTPUT }}
           if-no-files-found: error
 
-      - name: Keep report-only workflow non-blocking
+      - name: Enforce AI review verdict
         if: always()
         run: |
-          echo "AI Review Gate is report-only; verdicts do not fail this workflow."
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          REQUIRED_CHECKS = {
+              "allowed_files",
+              "non_goals",
+              "sensitive_data",
+              "live_boundary",
+              "exchange_independence",
+              "runtime_validation",
+              "negative_tests",
+              "review_triage",
+          }
+
+          report = json.loads(Path("ai-review-gate-report.json").read_text(encoding="utf-8"))
+          verdict = report.get("verdict", "NEEDS_OWNER_POLICY")
+          checks = report.get("checks", {})
+          checks_pass = (
+              isinstance(checks, dict)
+              and set(checks) == REQUIRED_CHECKS
+              and all(value == "pass" for value in checks.values())
+          )
+          owner_clear = report.get("owner_decision_required") is False
+          if verdict == "PASS" and checks_pass and owner_clear:
+              print("AI Review Gate verdict PASS; workflow succeeds.")
+              raise SystemExit(0)
+
+          print(f"AI Review Gate verdict {verdict}; workflow fails until the issue is resolved or owner policy is recorded.")
+          raise SystemExit(1)
+          PY
