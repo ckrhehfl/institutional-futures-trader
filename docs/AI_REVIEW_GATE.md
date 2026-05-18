@@ -6,7 +6,7 @@
 
 ## Scope
 
-- `pull_request` to `main`에서만 실행합니다.
+- `pull_request_target` to `main`에서만 실행합니다.
 - `openai/codex-action`을 사용합니다.
 - `OPENAI_API_KEY`는 GitHub Actions repository secret에서 읽습니다.
 - GitHub Actions job summary와 JSON artifact만 생성합니다.
@@ -21,14 +21,17 @@
 
 ## Security Boundary
 
-- `pull_request_target`은 사용하지 않습니다.
+- `pull_request_target`을 사용하지만 trusted base-branch workflow만 실행합니다.
 - permissions는 `contents: read`, `pull-requests: read`로 제한합니다.
 - `pull-requests: write` 권한을 사용하지 않습니다.
 - secret 값을 출력하지 않습니다.
-- fork PR 또는 `OPENAI_API_KEY`가 없는 실행에서는 Codex를 호출하지 않고 skip report를 남깁니다.
-- prompt와 guidance는 base branch에서 가져온 trusted copy를 사용합니다. PR checkout의 prompt 변경은
-  Codex 실행에 사용하지 않습니다.
-- PR code를 실행하지 않고 diff와 repository guidance만 검토합니다.
+- fork PR에서는 Codex를 호출하지 않고 `NEEDS_OWNER_POLICY` skip report를 남깁니다.
+- `OPENAI_API_KEY`는 Codex action step에만 전달합니다.
+- `actions/checkout`은 base branch만 checkout합니다.
+- PR head branch 또는 `refs/pull/.../merge`는 checkout하지 않습니다.
+- prompt와 guidance는 base branch에서 가져온 trusted copy를 사용합니다.
+- PR diff는 `gh pr diff`로 수집한 untrusted text data입니다. Codex는 이 diff를 데이터로만 읽습니다.
+- PR code를 checkout, build, test, install, import, 또는 실행하지 않습니다.
 
 ## Non-Goals
 

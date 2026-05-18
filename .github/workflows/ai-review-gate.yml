@@ -1,7 +1,7 @@
 name: AI Review Gate
 
 on:
-  pull_request:
+  pull_request_target:
     branches:
       - main
 
@@ -21,63 +21,56 @@ jobs:
       REVIEW_OUTPUT: ai-review-gate-report.json
 
     steps:
-      - name: Check out pull request merge commit
+      - name: Check out trusted base branch
         uses: actions/checkout@v6
         with:
-          ref: refs/pull/${{ github.event.pull_request.number }}/merge
+          ref: ${{ github.event.pull_request.base.ref }}
           fetch-depth: 0
           persist-credentials: false
 
-      - name: Fetch base and head refs
+      - name: Detect whether Codex review may run
+        id: review_policy
         env:
-          PR_BASE_REF: ${{ github.event.pull_request.base.ref }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
+          HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+          BASE_REPO: ${{ github.repository }}
         run: |
-          git fetch --no-tags origin \
-            "+refs/heads/${PR_BASE_REF}:refs/remotes/origin/${PR_BASE_REF}" \
-            "+refs/pull/${PR_NUMBER}/head:refs/remotes/origin/pr-${PR_NUMBER}-head"
-
-      - name: Prepare trusted base review context
-        id: trusted_context
-        env:
-          PR_BASE_REF: ${{ github.event.pull_request.base.ref }}
-        run: |
-          mkdir -p .ai-review-gate
-          git show "origin/${PR_BASE_REF}:AGENTS.md" > .ai-review-gate/AGENTS.md
-          git show "origin/${PR_BASE_REF}:docs/PR_REVIEW_PLAYBOOK.md" > .ai-review-gate/PR_REVIEW_PLAYBOOK.md
-          git show "origin/${PR_BASE_REF}:docs/DEVELOPMENT_ROADMAP.md" > .ai-review-gate/DEVELOPMENT_ROADMAP.md
-          if git show "origin/${PR_BASE_REF}:.github/prompts/ai-review-gate.md" > .ai-review-gate/prompt.md; then
-            echo "prompt_available=true" >> "$GITHUB_OUTPUT"
+          if [ "$HEAD_REPO" = "$BASE_REPO" ]; then
+            echo "same_repository=true" >> "$GITHUB_OUTPUT"
           else
-            echo "prompt_available=false" >> "$GITHUB_OUTPUT"
+            echo "same_repository=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Check OpenAI key availability
-        id: openai_key
+      - name: Prepare trusted base review context and PR diff
+        id: trusted_context
         env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          GH_TOKEN: ${{ github.token }}
         run: |
-          if [ -n "$OPENAI_API_KEY" ]; then
-            echo "available=true" >> "$GITHUB_OUTPUT"
+          mkdir -p .ai-review-gate
+          cp AGENTS.md .ai-review-gate/AGENTS.md
+          cp docs/PR_REVIEW_PLAYBOOK.md .ai-review-gate/PR_REVIEW_PLAYBOOK.md
+          cp docs/DEVELOPMENT_ROADMAP.md .ai-review-gate/DEVELOPMENT_ROADMAP.md
+          if gh pr diff "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --patch > .ai-review-gate/pr.diff; then
+            echo "diff_available=true" >> "$GITHUB_OUTPUT"
           else
-            echo "available=false" >> "$GITHUB_OUTPUT"
+            echo "diff_available=false" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Create skip report when AI review cannot run safely
-        if: steps.openai_key.outputs.available != 'true' || steps.trusted_context.outputs.prompt_available != 'true'
+        if: steps.review_policy.outputs.same_repository != 'true' || steps.trusted_context.outputs.diff_available != 'true'
         run: |
           cat > "$REVIEW_OUTPUT" <<'JSON'
           {
             "verdict": "NEEDS_OWNER_POLICY",
             "report_only": true,
-            "summary": "AI Review Gate skipped because OPENAI_API_KEY was unavailable or the trusted base prompt was not present.",
+            "summary": "AI Review Gate skipped because the pull request could not be reviewed safely.",
             "findings": [
               {
                 "severity": "P3",
                 "classification": "OWNER_DECISION_REQUIRED",
                 "file": null,
-                "reason": "The report-only AI review requires repository secrets and a trusted prompt loaded from the base branch.",
-                "recommended_action": "Confirm whether this event is expected to receive repository secrets and whether the base branch already contains the AI review prompt."
+                "reason": "The report-only AI review only invokes Codex for same-repository pull requests with an available diff artifact.",
+                "recommended_action": "Review fork pull requests manually or inspect why the PR diff could not be collected as text data."
               }
             ],
             "checks": {
@@ -95,18 +88,18 @@ jobs:
           JSON
 
       - name: Run Codex AI review
-        if: steps.openai_key.outputs.available == 'true' && steps.trusted_context.outputs.prompt_available == 'true'
+        if: steps.review_policy.outputs.same_repository == 'true' && steps.trusted_context.outputs.diff_available == 'true'
         id: codex_review
         uses: openai/codex-action@v1
         with:
           openai-api-key: ${{ secrets.OPENAI_API_KEY }}
-          prompt-file: .ai-review-gate/prompt.md
+          prompt-file: .github/prompts/ai-review-gate.md
           sandbox: read-only
           safety-strategy: drop-sudo
         continue-on-error: true
 
       - name: Write Codex JSON report
-        if: steps.openai_key.outputs.available == 'true' && steps.trusted_context.outputs.prompt_available == 'true'
+        if: steps.review_policy.outputs.same_repository == 'true' && steps.trusted_context.outputs.diff_available == 'true'
         env:
           CODEX_FINAL_MESSAGE: ${{ steps.codex_review.outputs.final-message }}
         run: |
