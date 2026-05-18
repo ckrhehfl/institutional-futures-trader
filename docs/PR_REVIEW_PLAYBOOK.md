@@ -59,6 +59,49 @@ Stop the merge when any of these are true:
 
 Merge can proceed after human judgment when the only remaining comments are out-of-scope follow-ups, optional/style comments, or owner-accepted deferrals.
 
+## Conditional Auto-Merge Review Policy
+
+Infra PR-4 may add a separate conditional auto-merge workflow with `contents: write` and
+`pull-requests: write` only for GitHub auto-merge enable/disable. This policy is a trusted
+base 기준 for AI Review Gate triage, not unconditional approval for high-privilege
+repository automation.
+
+An auto-merge PR remains in scope only when all of these are true:
+
+- It keeps auto-merge separate from AI Review Gate.
+- It does not pass `OPENAI_API_KEY` or trading-related secrets to auto-merge.
+- It does not use `--admin`.
+- It does not bypass branch protection.
+- It does not write PR comments.
+- It does not checkout, build, run, install, or import PR head code.
+- It excludes fork and external PRs from auto-merge.
+- It excludes high-risk file changes from auto-merge.
+- It keeps auto-merge separate from live trading enablement, exchange credentials, risk cap increase, and model live promotion.
+
+Minimum high-risk file exclusion patterns:
+
+- `.github/workflows/**`
+- `.github/prompts/**`
+- `AGENTS.md`
+- `docs/AI_REVIEW_GATE.md`
+- `docs/AUTO_MERGE_POLICY.md`
+- `docs/PR_REVIEW_PLAYBOOK.md`
+- `docs/LIVE_TRADING_GATE.md`
+- `docs/DEVELOPMENT_ROADMAP.md`
+- `.pre-commit-config.yaml`
+- `pyproject.toml`
+- `.secrets.baseline`
+- `.env*`
+- `**/*secret*`
+- `**/*credential*`
+- `**/*key*`
+- `src/trading_system/adapters/exchanges/**`
+- live trading enablement와 직접 관련된 파일명 또는 경로
+
+If a proposed auto-merge PR weakens any of these boundaries, classify it as
+`IN_SCOPE_BUG`, `IN_SCOPE_ROBUSTNESS`, or `OWNER_DECISION_REQUIRED` depending on whether
+the issue is a concrete workflow flaw or a missing owner policy decision.
+
 ## Squash Merge Criteria
 
 - Use squash merge when review response commits are numerous or noisy.

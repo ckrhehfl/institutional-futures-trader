@@ -84,7 +84,24 @@ Infra PR-4에서는 별도 auto-merge workflow가 제한적으로 `contents: wri
 - auto-merge workflow는 `OPENAI_API_KEY` 또는 trading 관련 secrets를 받지 않습니다.
 - PR head code checkout, build, run, install, import는 금지합니다.
 - fork 또는 external PR은 자동 merge 대상에서 제외합니다.
-- high-risk file 변경 PR은 자동 merge 대상에서 제외합니다.
+- high-risk file 변경 PR은 자동 merge 대상에서 제외합니다. 최소 exclusion pattern은 다음과 같습니다.
+  - `.github/workflows/**`
+  - `.github/prompts/**`
+  - `AGENTS.md`
+  - `docs/AI_REVIEW_GATE.md`
+  - `docs/AUTO_MERGE_POLICY.md`
+  - `docs/PR_REVIEW_PLAYBOOK.md`
+  - `docs/LIVE_TRADING_GATE.md`
+  - `docs/DEVELOPMENT_ROADMAP.md`
+  - `.pre-commit-config.yaml`
+  - `pyproject.toml`
+  - `.secrets.baseline`
+  - `.env*`
+  - `**/*secret*`
+  - `**/*credential*`
+  - `**/*key*`
+  - `src/trading_system/adapters/exchanges/**`
+  - live trading enablement와 직접 관련된 파일명 또는 경로
 - live trading enablement와 auto-merge는 분리합니다.
 - auto-merge workflow는 branch protection과 required checks가 최종 merge gate라는 전제를 약화하지
   않습니다.
