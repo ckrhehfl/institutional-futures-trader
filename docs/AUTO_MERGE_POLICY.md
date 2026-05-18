@@ -68,6 +68,8 @@ Fork PRs and external repository PRs are not auto-merge eligible. They require m
 
 The `owner-decision-required`, `security-review-required`, `manual-merge-only`, `blocked`, and `do-not-merge` labels opt a PR out of auto-merge. These labels represent policy, risk, or scope conditions that automation should not resolve.
 
+When a same-repository PR becomes ineligible after auto-merge was already enabled, the workflow disables GitHub auto-merge for that PR. This keeps blocking labels and high-risk file changes effective after the initial eligibility decision.
+
 Human owners remain responsible for policy, risk, prohibited implementation, credential handling, and live trading boundary decisions. They are not the default code quality reviewer.
 
 ## Live Trading Separation

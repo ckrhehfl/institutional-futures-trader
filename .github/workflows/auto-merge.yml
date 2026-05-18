@@ -96,6 +96,15 @@ jobs:
             --squash \
             --match-head-commit "$HEAD_SHA"
 
+      - name: Disable GitHub auto-merge when ineligible
+        if: steps.eligibility.outputs.eligible != 'true' && github.event.pull_request.head.repo.full_name == github.repository
+        run: |
+          if gh pr merge "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --disable-auto; then
+            echo "Disabled GitHub auto-merge for ineligible PR $PR_NUMBER."
+          else
+            echo "GitHub auto-merge was not enabled or could not be disabled for PR $PR_NUMBER."
+          fi
+
       - name: Write summary
         if: always()
         run: |
