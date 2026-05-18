@@ -7,6 +7,7 @@ on:
       - reopened
       - synchronize
       - ready_for_review
+      - edited
       - labeled
       - unlabeled
 
@@ -22,13 +23,13 @@ jobs:
   enable:
     name: Enable auto-merge
     runs-on: ubuntu-latest
-    if: github.event.pull_request.base.ref == 'main'
     env:
       GH_TOKEN: ${{ github.token }}
       PR_NUMBER: ${{ github.event.pull_request.number }}
       HEAD_SHA: ${{ github.event.pull_request.head.sha }}
       HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
       BASE_REPO: ${{ github.repository }}
+      BASE_REF: ${{ github.event.pull_request.base.ref }}
       IS_DRAFT: ${{ github.event.pull_request.draft }}
       PR_STATE: ${{ github.event.pull_request.state }}
       BLOCKING_LABELS: do-not-merge,blocked,owner-decision-required,security-review-required,manual-merge-only
@@ -45,6 +46,12 @@ jobs:
           if [ "$HEAD_REPO" != "$BASE_REPO" ]; then
             echo "eligible=false" >> "$GITHUB_OUTPUT"
             echo "reason=fork-or-external-pr" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if [ "$BASE_REF" != "main" ]; then
+            echo "eligible=false" >> "$GITHUB_OUTPUT"
+            echo "reason=non-main-base" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
