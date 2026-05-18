@@ -8,6 +8,10 @@ This document defines the Infra PR-4 conditional auto-merge policy. Auto-merge i
 - Let GitHub branch protection and required checks decide whether the PR can actually merge.
 - Keep auto-merge separate from CI, AI Review Gate, live trading gates, and post-merge lesson capture.
 
+## Owner-Approved Boundary
+
+Infra PR-4 explicitly approves adding `.github/workflows/auto-merge.yml` with `pull_request_target`, `contents: write`, and `pull-requests: write` for one narrow purpose: enabling or disabling GitHub auto-merge for eligible same-repository PRs. This approval does not extend to branch protection changes, PR comments, AI Review Gate changes, repository secrets, trading secrets, workflow bypasses, direct merges, or live trading enablement.
+
 ## Non-Goals
 
 - Auto-merge does not enable live trading.
