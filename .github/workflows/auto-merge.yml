@@ -81,7 +81,7 @@ jobs:
             exit 0
           fi
 
-          high_risk_pattern='(^\.github/workflows/|^\.github/prompts/|^AGENTS\.md$|^docs/(AI_REVIEW_GATE|AUTO_MERGE_POLICY|PR_REVIEW_PLAYBOOK|LIVE_TRADING_GATE|DEVELOPMENT_ROADMAP)\.md$|^\.pre-commit-config\.yaml$|^pyproject\.toml$|^\.secrets\.baseline$|^\.env[^/]*$|(^|/)[^/]*secret[^/]*$|(^|/)[^/]*credential[^/]*$|(^|/)[^/]*key[^/]*$|^src/trading_system/adapters/exchanges/|(^|/)[^/]*(live[-_]?trading|live[-_]?enable|live[-_]?gate|model[-_]?live|risk[-_]?cap)[^/]*$)'
+          high_risk_pattern='(^\.github/workflows/|^\.github/prompts/|^AGENTS\.md$|^docs/(AI_REVIEW_GATE|AUTO_MERGE_POLICY|PR_REVIEW_PLAYBOOK|LIVE_TRADING_GATE|DEVELOPMENT_ROADMAP)\.md$|^\.pre-commit-config\.yaml$|^pyproject\.toml$|^\.secrets\.baseline$|^\.env[^/]*$|(^|/)[^/]*secret[^/]*/?|(^|/)[^/]*credential[^/]*/?|(^|/)[^/]*key[^/]*/?|^src/trading_system/adapters/exchanges/|(^|/)[^/]*(live[-_]?trading|live[-_]?enable|live[-_]?gate|model[-_]?live|risk[-_]?cap)[^/]*/?)'
           if printf '%s\n' "$changed_files" | grep -Ei "$high_risk_pattern" >/dev/null; then
             echo "eligible=false" >> "$GITHUB_OUTPUT"
             echo "reason=high-risk-files" >> "$GITHUB_OUTPUT"
