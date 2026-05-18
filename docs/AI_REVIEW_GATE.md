@@ -68,3 +68,40 @@ false positive/false negative adjudication입니다.
 
 이 gate는 main branch merge safety를 다루며 live trading enablement와 연결하지 않습니다. live trading,
 exchange credentials, risk cap increase, model live promotion은 계속 별도 policy gate로 봉인합니다.
+
+## Conditional Auto-Merge Policy Boundary
+
+Infra PR-4에서는 별도 auto-merge workflow가 제한적으로 `contents: write` 및
+`pull-requests: write` 권한을 가질 수 있습니다. 이 권한은 GitHub auto-merge enable/disable
+용도로만 허용됩니다.
+
+이 trusted policy는 PR #15 같은 high-privilege repository automation을 무조건 승인한다는 뜻이
+아닙니다. AI Review Gate가 아래 조건을 기준으로 해당 PR을 판단할 수 있게 하는 trusted base 기준입니다.
+
+- `--admin` 사용은 금지합니다.
+- branch protection 우회는 금지합니다.
+- AI Review Gate workflow와 auto-merge workflow는 분리합니다.
+- auto-merge workflow는 `OPENAI_API_KEY` 또는 trading 관련 secrets를 받지 않습니다.
+- PR head code checkout, build, run, install, import는 금지합니다.
+- fork 또는 external PR은 자동 merge 대상에서 제외합니다.
+- high-risk file 변경 PR은 자동 merge 대상에서 제외합니다. 최소 exclusion pattern은 다음과 같습니다.
+  - `.github/workflows/**`
+  - `.github/prompts/**`
+  - `AGENTS.md`
+  - `docs/AI_REVIEW_GATE.md`
+  - `docs/AUTO_MERGE_POLICY.md`
+  - `docs/PR_REVIEW_PLAYBOOK.md`
+  - `docs/LIVE_TRADING_GATE.md`
+  - `docs/DEVELOPMENT_ROADMAP.md`
+  - `.pre-commit-config.yaml`
+  - `pyproject.toml`
+  - `.secrets.baseline`
+  - `.env*`
+  - `**/*secret*`
+  - `**/*credential*`
+  - `**/*key*`
+  - `src/trading_system/adapters/exchanges/**`
+  - live trading enablement와 직접 관련된 파일명 또는 경로
+- live trading enablement와 auto-merge는 분리합니다.
+- auto-merge workflow는 branch protection과 required checks가 최종 merge gate라는 전제를 약화하지
+  않습니다.
