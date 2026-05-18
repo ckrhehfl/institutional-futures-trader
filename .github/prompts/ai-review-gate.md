@@ -44,6 +44,10 @@ Allowed verdicts:
 - `NEEDS_OWNER_POLICY`: the change raises a policy/scope decision that should be
   resolved by the repository owner before the AI gate can classify it.
 
+Only return `PASS` when `owner_decision_required` is `false` and every `checks`
+entry is `pass`. If any check is `fail` or `needs_review`, use `FAIL` or
+`NEEDS_OWNER_POLICY`.
+
 Use this schema:
 
 {

@@ -14,6 +14,7 @@
 - verdict가 `PASS`일 때만 workflow가 성공합니다.
 - verdict가 `FAIL` 또는 `NEEDS_OWNER_POLICY`이면 workflow가 실패합니다.
 - missing/invalid JSON은 `NEEDS_OWNER_POLICY` fallback report로 정규화하고 workflow를 실패 처리합니다.
+- `PASS` report라도 `owner_decision_required`가 `false`가 아니거나 checks 값이 모두 `pass`가 아니면 workflow가 실패합니다.
 
 ## Verdicts
 

@@ -144,6 +144,16 @@ jobs:
           from pathlib import Path
 
           VALID_VERDICTS = {"PASS", "FAIL", "NEEDS_OWNER_POLICY"}
+          REQUIRED_CHECKS = {
+              "allowed_files",
+              "non_goals",
+              "sensitive_data",
+              "live_boundary",
+              "exchange_independence",
+              "runtime_validation",
+              "negative_tests",
+              "review_triage",
+          }
 
           FALLBACK_REPORT = {
               "verdict": "NEEDS_OWNER_POLICY",
@@ -194,6 +204,24 @@ jobs:
           if any(not isinstance(finding, dict) for finding in findings):
               path.write_text(json.dumps(FALLBACK_REPORT, indent=2) + "\n", encoding="utf-8")
               raise SystemExit(0)
+
+          if report.get("verdict") == "PASS":
+              checks = report.get("checks")
+              if not isinstance(checks, dict):
+                  path.write_text(json.dumps(FALLBACK_REPORT, indent=2) + "\n", encoding="utf-8")
+                  raise SystemExit(0)
+
+              if report.get("owner_decision_required") is not False:
+                  path.write_text(json.dumps(FALLBACK_REPORT, indent=2) + "\n", encoding="utf-8")
+                  raise SystemExit(0)
+
+              if set(checks) != REQUIRED_CHECKS:
+                  path.write_text(json.dumps(FALLBACK_REPORT, indent=2) + "\n", encoding="utf-8")
+                  raise SystemExit(0)
+
+              if any(value != "pass" for value in checks.values()):
+                  path.write_text(json.dumps(FALLBACK_REPORT, indent=2) + "\n", encoding="utf-8")
+                  raise SystemExit(0)
           PY
 
       - name: Write job summary
@@ -239,9 +267,27 @@ jobs:
           import json
           from pathlib import Path
 
+          REQUIRED_CHECKS = {
+              "allowed_files",
+              "non_goals",
+              "sensitive_data",
+              "live_boundary",
+              "exchange_independence",
+              "runtime_validation",
+              "negative_tests",
+              "review_triage",
+          }
+
           report = json.loads(Path("ai-review-gate-report.json").read_text(encoding="utf-8"))
           verdict = report.get("verdict", "NEEDS_OWNER_POLICY")
-          if verdict == "PASS":
+          checks = report.get("checks", {})
+          checks_pass = (
+              isinstance(checks, dict)
+              and set(checks) == REQUIRED_CHECKS
+              and all(value == "pass" for value in checks.values())
+          )
+          owner_clear = report.get("owner_decision_required") is False
+          if verdict == "PASS" and checks_pass and owner_clear:
               print("AI Review Gate verdict PASS; workflow succeeds.")
               raise SystemExit(0)
 
