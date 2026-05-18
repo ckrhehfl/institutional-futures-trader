@@ -33,6 +33,9 @@ jobs:
       IS_DRAFT: ${{ github.event.pull_request.draft }}
       PR_STATE: ${{ github.event.pull_request.state }}
       BLOCKING_LABELS: do-not-merge,blocked,owner-decision-required,security-review-required,manual-merge-only
+      MIN_PR_AGE_SECONDS: 600
+      MIN_HEAD_AGE_SECONDS: 300
+      MIN_UPDATE_AGE_SECONDS: 300
 
     steps:
       - name: Check eligibility
@@ -42,6 +45,17 @@ jobs:
 
           echo "eligible=true" >> "$GITHUB_OUTPUT"
           echo "reason=eligible" >> "$GITHUB_OUTPUT"
+
+          is_too_recent() {
+            local timestamp="$1"
+            local minimum_age_seconds="$2"
+            local now_epoch timestamp_epoch age_seconds
+
+            now_epoch="$(date -u +%s)"
+            timestamp_epoch="$(date -u -d "$timestamp" +%s)"
+            age_seconds=$((now_epoch - timestamp_epoch))
+            [ "$age_seconds" -lt "$minimum_age_seconds" ]
+          }
 
           if [ "$HEAD_REPO" != "$BASE_REPO" ]; then
             echo "eligible=false" >> "$GITHUB_OUTPUT"
@@ -67,11 +81,13 @@ jobs:
             exit 0
           fi
 
-          if ! labels="$(gh pr view "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --json labels --jq '[.labels[].name] | join(",")')"; then
+          if ! pr_metadata="$(gh pr view "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --json createdAt,updatedAt,labels --jq '[.createdAt, .updatedAt, ([.labels[].name] | join(","))] | @tsv')"; then
             echo "eligible=false" >> "$GITHUB_OUTPUT"
             echo "reason=metadata-unavailable" >> "$GITHUB_OUTPUT"
             exit 0
           fi
+
+          IFS=$'\t' read -r pr_created_at pr_updated_at labels <<< "$pr_metadata"
 
           IFS=',' read -r -a blockers <<< "$BLOCKING_LABELS"
           for label in "${blockers[@]}"; do
@@ -81,6 +97,30 @@ jobs:
               exit 0
             fi
           done
+
+          if is_too_recent "$pr_created_at" "$MIN_PR_AGE_SECONDS"; then
+            echo "eligible=false" >> "$GITHUB_OUTPUT"
+            echo "reason=settling-pr-too-new" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if is_too_recent "$pr_updated_at" "$MIN_UPDATE_AGE_SECONDS"; then
+            echo "eligible=false" >> "$GITHUB_OUTPUT"
+            echo "reason=settling-pr-updated-too-recently" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if ! head_timestamp="$(gh api "repos/$GITHUB_REPOSITORY/commits/$HEAD_SHA" --jq '.commit.committer.date')"; then
+            echo "eligible=false" >> "$GITHUB_OUTPUT"
+            echo "reason=metadata-unavailable" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if is_too_recent "$head_timestamp" "$MIN_HEAD_AGE_SECONDS"; then
+            echo "eligible=false" >> "$GITHUB_OUTPUT"
+            echo "reason=settling-head-too-new" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
 
           if ! changed_files="$(gh api --paginate "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER/files" --jq '.[] | .filename, (.previous_filename // empty)')"; then
             echo "eligible=false" >> "$GITHUB_OUTPUT"

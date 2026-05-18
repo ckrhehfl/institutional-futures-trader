@@ -59,6 +59,20 @@ For renamed files, both the previous path and current path must pass the high-ri
 
 If a same-repository PR is retargeted away from `main`, it becomes ineligible and the workflow may disable any existing GitHub auto-merge for that PR.
 
+## Settling Guard
+
+Before enabling auto-merge, the workflow waits for deterministic settling windows:
+
+- The PR must be at least 600 seconds old from `created_at`.
+- The current head commit timestamp must be at least 300 seconds old.
+- The PR must be at least 300 seconds past its latest `updated_at` timestamp.
+
+If any settling window has not elapsed, the PR is ineligible for auto-merge enablement and a same-repository PR may have existing auto-merge disabled. The workflow records one of these reasons: `settling-pr-too-new`, `settling-head-too-new`, or `settling-pr-updated-too-recently`.
+
+Infra PR-4a uses event-only re-evaluation. Time passing does not automatically re-run the workflow; the next supported PR event re-evaluates eligibility. Schedule-based periodic re-evaluation can be considered later in a separate Infra PR-4b if the project needs it.
+
+The settling guard does not replace CI or AI Review Gate. It only makes auto-merge enablement more conservative while branch protection and required checks remain the final merge authority.
+
 ## Branch Protection and Required Checks
 
 The auto-merge workflow does not bypass branch protection. It only asks GitHub to enable auto-merge with:
