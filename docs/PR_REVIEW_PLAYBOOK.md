@@ -99,8 +99,8 @@ Minimum high-risk file exclusion patterns:
 - live trading enablement와 직접 관련된 파일명 또는 경로
 
 If a proposed auto-merge PR weakens any of these boundaries, classify it as
-`IN_SCOPE_BUG`, `IN_SCOPE_ROBUSTNESS`, or `OWNER_DECISION_REQUIRED` depending on whether
-the issue is a concrete workflow flaw or a missing owner policy decision.
+`IN_SCOPE_BUG` or `OWNER_DECISION_REQUIRED` depending on whether the issue is a
+concrete workflow flaw or a missing owner policy decision.
 
 ## Squash Merge Criteria
 
