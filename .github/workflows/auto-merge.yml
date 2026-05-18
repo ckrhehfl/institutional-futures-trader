@@ -1,0 +1,109 @@
+name: Auto Merge
+
+on:
+  pull_request_target:
+    types:
+      - opened
+      - reopened
+      - synchronize
+      - ready_for_review
+      - labeled
+      - unlabeled
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: auto-merge-${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  enable:
+    name: Enable auto-merge
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.base.ref == 'main'
+    env:
+      GH_TOKEN: ${{ github.token }}
+      PR_NUMBER: ${{ github.event.pull_request.number }}
+      HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+      HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+      BASE_REPO: ${{ github.repository }}
+      IS_DRAFT: ${{ github.event.pull_request.draft }}
+      PR_STATE: ${{ github.event.pull_request.state }}
+      BLOCKING_LABELS: do-not-merge,blocked,owner-decision-required,security-review-required,manual-merge-only
+
+    steps:
+      - name: Check eligibility
+        id: eligibility
+        run: |
+          set -euo pipefail
+
+          echo "eligible=true" >> "$GITHUB_OUTPUT"
+          echo "reason=eligible" >> "$GITHUB_OUTPUT"
+
+          if [ "$HEAD_REPO" != "$BASE_REPO" ]; then
+            echo "eligible=false" >> "$GITHUB_OUTPUT"
+            echo "reason=fork-or-external-pr" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if [ "$IS_DRAFT" = "true" ]; then
+            echo "eligible=false" >> "$GITHUB_OUTPUT"
+            echo "reason=draft-pr" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if [ "$PR_STATE" != "open" ]; then
+            echo "eligible=false" >> "$GITHUB_OUTPUT"
+            echo "reason=not-open" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if ! labels="$(gh pr view "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --json labels --jq '[.labels[].name] | join(",")')"; then
+            echo "eligible=false" >> "$GITHUB_OUTPUT"
+            echo "reason=metadata-unavailable" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          IFS=',' read -r -a blockers <<< "$BLOCKING_LABELS"
+          for label in "${blockers[@]}"; do
+            if printf ',%s,' "$labels" | grep -Fq ",$label,"; then
+              echo "eligible=false" >> "$GITHUB_OUTPUT"
+              echo "reason=blocking-label-$label" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+          done
+
+          if ! changed_files="$(gh pr diff "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --name-only)"; then
+            echo "eligible=false" >> "$GITHUB_OUTPUT"
+            echo "reason=changed-files-unavailable" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if printf '%s\n' "$changed_files" | grep -E '(^\.github/workflows/|^\.github/prompts/|^docs/LIVE_TRADING_GATE\.md$|(^|/)(secrets?|credentials?)(/|\.|-|_|$)|(^|/)(live[-_]?trading|live[-_]?enable|live[-_]?gate|model[-_]?live|risk[-_]?cap)(/|\.|-|_|$))' >/dev/null; then
+            echo "eligible=false" >> "$GITHUB_OUTPUT"
+            echo "reason=high-risk-files" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+      - name: Enable GitHub auto-merge
+        if: steps.eligibility.outputs.eligible == 'true'
+        run: |
+          gh pr merge "$PR_NUMBER" \
+            --repo "$GITHUB_REPOSITORY" \
+            --auto \
+            --squash \
+            --match-head-commit "$HEAD_SHA"
+
+      - name: Write summary
+        if: always()
+        run: |
+          echo "## Auto Merge" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Eligible: \`${{ steps.eligibility.outputs.eligible || 'false' }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Reason: \`${{ steps.eligibility.outputs.reason || 'not-evaluated' }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- PR: \`$PR_NUMBER\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Head SHA: \`$HEAD_SHA\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "This workflow only enables GitHub auto-merge. Branch protection and required checks still decide whether the PR can merge." >> "$GITHUB_STEP_SUMMARY"
