@@ -35,7 +35,6 @@ jobs:
       BLOCKING_LABELS: do-not-merge,blocked,owner-decision-required,security-review-required,manual-merge-only
       MIN_PR_AGE_SECONDS: 600
       MIN_HEAD_AGE_SECONDS: 300
-      MIN_UPDATE_AGE_SECONDS: 300
 
     steps:
       - name: Check eligibility
@@ -81,13 +80,13 @@ jobs:
             exit 0
           fi
 
-          if ! pr_metadata="$(gh pr view "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --json createdAt,updatedAt,labels --jq '[.createdAt, .updatedAt, ([.labels[].name] | join(","))] | @tsv')"; then
+          if ! pr_metadata="$(gh pr view "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --json createdAt,labels --jq '[.createdAt, ([.labels[].name] | join(","))] | @tsv')"; then
             echo "eligible=false" >> "$GITHUB_OUTPUT"
             echo "reason=metadata-unavailable" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
-          IFS=$'\t' read -r pr_created_at pr_updated_at labels <<< "$pr_metadata"
+          IFS=$'\t' read -r pr_created_at labels <<< "$pr_metadata"
 
           IFS=',' read -r -a blockers <<< "$BLOCKING_LABELS"
           for label in "${blockers[@]}"; do
@@ -101,12 +100,6 @@ jobs:
           if is_too_recent "$pr_created_at" "$MIN_PR_AGE_SECONDS"; then
             echo "eligible=false" >> "$GITHUB_OUTPUT"
             echo "reason=settling-pr-too-new" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-
-          if is_too_recent "$pr_updated_at" "$MIN_UPDATE_AGE_SECONDS"; then
-            echo "eligible=false" >> "$GITHUB_OUTPUT"
-            echo "reason=settling-pr-updated-too-recently" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
