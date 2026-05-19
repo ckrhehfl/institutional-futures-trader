@@ -28,6 +28,7 @@ jobs:
       PR_NUMBER: ${{ github.event.pull_request.number }}
       HEAD_SHA: ${{ github.event.pull_request.head.sha }}
       HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+      HEAD_REPO_PUSHED_AT: ${{ github.event.pull_request.head.repo.pushed_at }}
       BASE_REPO: ${{ github.repository }}
       BASE_REF: ${{ github.event.pull_request.base.ref }}
       IS_DRAFT: ${{ github.event.pull_request.draft }}
@@ -103,19 +104,13 @@ jobs:
             exit 0
           fi
 
-          if ! head_timestamp="$(gh api --paginate "repos/$GITHUB_REPOSITORY/events" --jq '[.[] | select(.type == "PushEvent" and .payload.head == env.HEAD_SHA) | .created_at] | max // empty')"; then
+          if [ -z "$HEAD_REPO_PUSHED_AT" ]; then
             echo "eligible=false" >> "$GITHUB_OUTPUT"
             echo "reason=metadata-unavailable" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
-          if [ -z "$head_timestamp" ]; then
-            echo "eligible=false" >> "$GITHUB_OUTPUT"
-            echo "reason=metadata-unavailable" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-
-          if is_too_recent "$head_timestamp" "$MIN_HEAD_AGE_SECONDS"; then
+          if is_too_recent "$HEAD_REPO_PUSHED_AT" "$MIN_HEAD_AGE_SECONDS"; then
             echo "eligible=false" >> "$GITHUB_OUTPUT"
             echo "reason=settling-head-too-new" >> "$GITHUB_OUTPUT"
             exit 0
