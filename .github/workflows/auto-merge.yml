@@ -28,7 +28,6 @@ jobs:
       PR_NUMBER: ${{ github.event.pull_request.number }}
       HEAD_SHA: ${{ github.event.pull_request.head.sha }}
       HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
-      HEAD_REPO_PUSHED_AT: ${{ github.event.pull_request.head.repo.pushed_at }}
       BASE_REPO: ${{ github.repository }}
       BASE_REF: ${{ github.event.pull_request.base.ref }}
       IS_DRAFT: ${{ github.event.pull_request.draft }}
@@ -46,15 +45,31 @@ jobs:
           echo "eligible=true" >> "$GITHUB_OUTPUT"
           echo "reason=eligible" >> "$GITHUB_OUTPUT"
 
-          is_too_recent() {
+          settle_until_old_enough() {
             local timestamp="$1"
             local minimum_age_seconds="$2"
+            local reason="$3"
             local now_epoch timestamp_epoch age_seconds
+            local wait_seconds
 
             now_epoch="$(date -u +%s)"
             timestamp_epoch="$(date -u -d "$timestamp" +%s)"
             age_seconds=$((now_epoch - timestamp_epoch))
-            [ "$age_seconds" -lt "$minimum_age_seconds" ]
+            if [ "$age_seconds" -lt "$minimum_age_seconds" ]; then
+              wait_seconds=$((minimum_age_seconds - age_seconds))
+              echo "Settling $reason for ${wait_seconds}s before enabling auto-merge."
+              gh pr merge "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --disable-auto || true
+              sleep "$wait_seconds"
+            fi
+          }
+
+          settle_for_seconds() {
+            local wait_seconds="$1"
+            local reason="$2"
+
+            echo "Settling $reason for ${wait_seconds}s before enabling auto-merge."
+            gh pr merge "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --disable-auto || true
+            sleep "$wait_seconds"
           }
 
           if [ "$HEAD_REPO" != "$BASE_REPO" ]; then
@@ -98,24 +113,6 @@ jobs:
             fi
           done
 
-          if is_too_recent "$pr_created_at" "$MIN_PR_AGE_SECONDS"; then
-            echo "eligible=false" >> "$GITHUB_OUTPUT"
-            echo "reason=settling-pr-too-new" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-
-          if [ -z "$HEAD_REPO_PUSHED_AT" ]; then
-            echo "eligible=false" >> "$GITHUB_OUTPUT"
-            echo "reason=metadata-unavailable" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-
-          if is_too_recent "$HEAD_REPO_PUSHED_AT" "$MIN_HEAD_AGE_SECONDS"; then
-            echo "eligible=false" >> "$GITHUB_OUTPUT"
-            echo "reason=settling-head-too-new" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-
           if ! changed_files="$(gh api --paginate "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER/files" --jq '.[] | .filename, (.previous_filename // empty)')"; then
             echo "eligible=false" >> "$GITHUB_OUTPUT"
             echo "reason=changed-files-unavailable" >> "$GITHUB_OUTPUT"
@@ -128,6 +125,10 @@ jobs:
             echo "reason=high-risk-files" >> "$GITHUB_OUTPUT"
             exit 0
           fi
+
+          settle_until_old_enough "$pr_created_at" "$MIN_PR_AGE_SECONDS" "pr-age"
+
+          settle_for_seconds "$MIN_HEAD_AGE_SECONDS" "head-update"
 
       - name: Enable GitHub auto-merge
         if: steps.eligibility.outputs.eligible == 'true'
