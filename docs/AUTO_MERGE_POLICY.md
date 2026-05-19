@@ -64,11 +64,11 @@ If a same-repository PR is retargeted away from `main`, it becomes ineligible an
 Before enabling auto-merge, the workflow waits for deterministic settling windows:
 
 - The PR must be at least 600 seconds old from `created_at`.
-- The current head commit timestamp must be at least 300 seconds old.
+- The latest repository push event for the current head SHA must be at least 300 seconds old.
 
 If any settling window has not elapsed, the PR is ineligible for auto-merge enablement and a same-repository PR may have existing auto-merge disabled. The workflow records either `settling-pr-too-new` or `settling-head-too-new`.
 
-Infra PR-4a uses event-only re-evaluation. Time passing does not automatically re-run the workflow; the next supported PR event re-evaluates eligibility. The workflow does not use PR `updated_at` as a settling input because pull request events update that timestamp. Schedule-based periodic re-evaluation, including any `updated_at`-style check, can be considered later in a separate Infra PR-4b if the project needs it.
+Infra PR-4a uses event-only re-evaluation. Time passing does not automatically re-run the workflow; the next supported PR event re-evaluates eligibility. The workflow does not use PR `updated_at` as a settling input because pull request events update that timestamp, and it does not use the commit object's authored or committed timestamp because those can be older than the actual push. Schedule-based periodic re-evaluation, including any `updated_at`-style check, can be considered later in a separate Infra PR-4b if the project needs it.
 
 The settling guard does not replace CI or AI Review Gate. It only makes auto-merge enablement more conservative while branch protection and required checks remain the final merge authority.
 
