@@ -87,12 +87,149 @@ jobs:
           }
           JSON
 
+      - name: Classify review cost tier
+        if: steps.review_policy.outputs.same_repository == 'true' && steps.trusted_context.outputs.diff_available == 'true'
+        id: review_cost
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python - <<'PY' >> "$GITHUB_OUTPUT"
+          import json
+          import os
+          import re
+          import subprocess
+
+          LOW_RISK_MODEL = "gpt-5.4-mini"
+          DEFAULT_MODEL = "gpt-5.4-mini"
+          HIGH_RISK_MODEL = "gpt-5.3-codex"
+          TRUSTED_POLICY_DOCS = {
+              "docs/AI_REVIEW_GATE.md",
+              "docs/AUTO_MERGE_POLICY.md",
+              "docs/PR_REVIEW_PLAYBOOK.md",
+              "docs/LIVE_TRADING_GATE.md",
+              "docs/DEVELOPMENT_ROADMAP.md",
+          }
+
+          HIGH_RISK_RE = re.compile(
+              r"(^\.github/workflows/|"
+              r"^\.github/prompts/|"
+              r"(^|/)AGENTS\.md$|"
+              r"^pyproject\.toml$|"
+              r"^\.pre-commit-config\.yaml$|"
+              r"^\.secrets\.baseline$|"
+              r"(^|/)\.env[^/]*$|"
+              r"(^|/)[^/]*secret[^/]*|"
+              r"(^|/)[^/]*credential[^/]*|"
+              r"(^|/)[^/]*key[^/]*|"
+              r"^src/trading_system/adapters/exchanges/|"
+              r"(^|/)[^/]*(oms|risk|live[-_]?trading|live[-_]?enable|live[-_]?gate|model[-_]?live|risk[-_]?cap)[^/]*)",
+              re.IGNORECASE,
+          )
+          HIGH_RISK_LABEL_RE = re.compile(
+              r"(security|secret|credential|key|workflow|policy|live|risk|oms|adapter|exchange|bingx)",
+              re.IGNORECASE,
+          )
+
+          def emit_output(name: str, value: str) -> None:
+              safe_value = "".join(
+                  character if character == "\t" or ord(character) >= 32 else " "
+                  for character in value
+              )
+              print(f"{name}={safe_value}")
+
+          def emit_routing(tier: str, model: str, effort: str, reason: str) -> None:
+              emit_output("risk_tier", tier)
+              emit_output("codex_model", model)
+              emit_output("codex_effort", effort)
+              emit_output("risk_reason", reason)
+
+          def gh_json(*args: str) -> object:
+              completed = subprocess.run(
+                  ["gh", *args],
+                  check=True,
+                  capture_output=True,
+                  text=True,
+              )
+              return json.loads(completed.stdout)
+
+          def flatten_paginated_files(payload: object) -> list[dict]:
+              if not isinstance(payload, list):
+                  raise TypeError("Paginated files response must be a list")
+
+              files = []
+              for item in payload:
+                  if isinstance(item, list):
+                      files.extend(file_info for file_info in item if isinstance(file_info, dict))
+                  elif isinstance(item, dict):
+                      files.append(item)
+                  else:
+                      raise TypeError("Paginated files response contains an unexpected item")
+
+              return files
+
+          pr_number = os.environ["PR_NUMBER"]
+          repo = os.environ["GITHUB_REPOSITORY"]
+          try:
+              files_payload = gh_json("api", "--paginate", "--slurp", f"repos/{repo}/pulls/{pr_number}/files")
+              files = flatten_paginated_files(files_payload)
+              pr = gh_json("api", f"repos/{repo}/pulls/{pr_number}")
+          except Exception:
+              emit_routing("high", HIGH_RISK_MODEL, "high", "metadata-unavailable")
+              raise SystemExit(0)
+
+          expected_file_count = pr.get("changed_files")
+          if not isinstance(expected_file_count, int):
+              emit_routing("high", HIGH_RISK_MODEL, "high", "changed-file-count-unavailable")
+              raise SystemExit(0)
+
+          if expected_file_count > len(files):
+              emit_routing("high", HIGH_RISK_MODEL, "high", "changed-files-api-truncated")
+              raise SystemExit(0)
+
+          if len(files) >= 3000:
+              emit_routing("high", HIGH_RISK_MODEL, "high", "changed-files-api-limit-reached")
+              raise SystemExit(0)
+
+          paths = []
+          for file_info in files:
+              filename = file_info.get("filename")
+              previous_filename = file_info.get("previous_filename")
+              if filename:
+                  paths.append(filename)
+              if previous_filename:
+                  paths.append(previous_filename)
+
+          labels = [label.get("name", "") for label in pr.get("labels", [])]
+
+          high_risk_path = next((path for path in paths if HIGH_RISK_RE.search(path)), None)
+          high_risk_policy_doc = next((path for path in paths if path in TRUSTED_POLICY_DOCS), None)
+          high_risk_label = next((label for label in labels if HIGH_RISK_LABEL_RE.search(label)), None)
+          docs_only = bool(paths) and all(path.startswith("docs/") or path.endswith(".md") for path in paths)
+          solutions_only = bool(paths) and all(path.startswith("docs/solutions/") for path in paths)
+
+          if high_risk_policy_doc:
+              emit_routing("high", HIGH_RISK_MODEL, "high", f"high-risk-policy-doc:{high_risk_policy_doc}")
+          elif solutions_only:
+              emit_routing("low", LOW_RISK_MODEL, "low", "docs-solutions-learning-note")
+          elif high_risk_path:
+              emit_routing("high", HIGH_RISK_MODEL, "high", f"high-risk-path:{high_risk_path}")
+          elif high_risk_label:
+              emit_routing("high", HIGH_RISK_MODEL, "high", f"high-risk-label:{high_risk_label}")
+          elif docs_only:
+              emit_routing("low", LOW_RISK_MODEL, "low", "docs-only")
+          else:
+              emit_routing("default", DEFAULT_MODEL, "medium", "default")
+          PY
+
       - name: Run Codex AI review
         if: steps.review_policy.outputs.same_repository == 'true' && steps.trusted_context.outputs.diff_available == 'true'
         id: codex_review
         uses: openai/codex-action@v1
         with:
           openai-api-key: ${{ secrets.OPENAI_API_KEY }}
+          model: ${{ steps.review_cost.outputs.codex_model }}
+          effort: ${{ steps.review_cost.outputs.codex_effort }}
           prompt-file: .github/prompts/ai-review-gate.md
           sandbox: read-only
           safety-strategy: drop-sudo
@@ -224,6 +361,30 @@ jobs:
                   raise SystemExit(0)
           PY
 
+      - name: Annotate review routing metadata
+        if: always()
+        env:
+          RISK_TIER: ${{ steps.review_cost.outputs.risk_tier || 'not-run' }}
+          CODEX_MODEL: ${{ steps.review_cost.outputs.codex_model || 'not-run' }}
+          CODEX_EFFORT: ${{ steps.review_cost.outputs.codex_effort || 'not-run' }}
+          RISK_REASON: ${{ steps.review_cost.outputs.risk_reason || 'not-run' }}
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          path = Path("ai-review-gate-report.json")
+          report = json.loads(path.read_text(encoding="utf-8"))
+          report["review_routing"] = {
+              "risk_tier": os.environ["RISK_TIER"],
+              "model": os.environ["CODEX_MODEL"],
+              "effort": os.environ["CODEX_EFFORT"],
+              "reason": os.environ["RISK_REASON"],
+          }
+          path.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
+          PY
+
       - name: Write job summary
         if: always()
         run: |
@@ -237,6 +398,11 @@ jobs:
           print(f"- Verdict: `{report.get('verdict', 'NEEDS_OWNER_POLICY')}`")
           print(f"- Required-check-ready: `{report.get('required_check_ready', True)}`")
           print(f"- Owner decision required: `{report.get('owner_decision_required', False)}`")
+          routing = report.get("review_routing", {})
+          print(f"- Risk tier: `{routing.get('risk_tier', 'not-run')}`")
+          print(f"- Model: `{routing.get('model', 'not-run')}`")
+          print(f"- Effort: `{routing.get('effort', 'not-run')}`")
+          print(f"- Routing reason: `{routing.get('reason', 'not-run')}`")
           print(f"- Summary: {report.get('summary', 'No summary provided.')}")
           print("")
           print("### Findings")
