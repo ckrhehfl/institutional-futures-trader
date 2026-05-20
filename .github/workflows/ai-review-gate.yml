@@ -173,9 +173,22 @@ jobs:
           try:
               files_payload = gh_json("api", "--paginate", "--slurp", f"repos/{repo}/pulls/{pr_number}/files")
               files = flatten_paginated_files(files_payload)
-              pr = gh_json("pr", "view", pr_number, "--repo", repo, "--json", "labels")
+              pr = gh_json("api", f"repos/{repo}/pulls/{pr_number}")
           except Exception:
               emit_routing("high", HIGH_RISK_MODEL, "high", "metadata-unavailable")
+              raise SystemExit(0)
+
+          expected_file_count = pr.get("changed_files")
+          if not isinstance(expected_file_count, int):
+              emit_routing("high", HIGH_RISK_MODEL, "high", "changed-file-count-unavailable")
+              raise SystemExit(0)
+
+          if expected_file_count > len(files):
+              emit_routing("high", HIGH_RISK_MODEL, "high", "changed-files-api-truncated")
+              raise SystemExit(0)
+
+          if len(files) >= 3000:
+              emit_routing("high", HIGH_RISK_MODEL, "high", "changed-files-api-limit-reached")
               raise SystemExit(0)
 
           paths = []
