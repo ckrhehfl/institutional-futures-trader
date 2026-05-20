@@ -118,7 +118,7 @@ jobs:
               r"^pyproject\.toml$|"
               r"^\.pre-commit-config\.yaml$|"
               r"^\.secrets\.baseline$|"
-              r"^\.env[^/]*$|"
+              r"(^|/)\.env[^/]*$|"
               r"(^|/)[^/]*secret[^/]*|"
               r"(^|/)[^/]*credential[^/]*|"
               r"(^|/)[^/]*key[^/]*|"
