@@ -21,14 +21,14 @@
 Workflow는 GitHub API metadata만 읽습니다.
 
 - PR number
-- PR title과 redacted body excerpt
-- labels
-- changed file paths
+- PR number
+- label count
+- changed file category counts
 - merge commit SHA
 - review count와 review comment count
 - check conclusion summary, 가능한 경우
 
-PR diff, body, comments, file names는 untrusted text data로만 취급합니다.
+PR diff, body, comments, labels, file names는 untrusted text data로만 취급합니다. v0 report는 free-form PR title/body, raw labels, raw file paths를 artifact에 내보내지 않습니다.
 
 ## Outputs
 
@@ -59,6 +59,8 @@ Candidate signal 예시는 다음과 같습니다.
 - Untrusted text를 shell command로 실행하거나 `eval`하지 않습니다.
 - Secret 값은 출력하지 않습니다.
 - Secret-like value는 report에 그대로 남지 않도록 redaction합니다.
+- Workflow는 redaction self-check와 generated output scan을 수행합니다.
+- Artifact와 job summary에는 raw PR title/body/labels/file paths를 출력하지 않습니다.
 - `--admin`을 사용하지 않습니다.
 - Branch protection을 우회하지 않습니다.
 - Auto-merge, AI Review Gate verdict, live trading enablement와 연결하지 않습니다.
