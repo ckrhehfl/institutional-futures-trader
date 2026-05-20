@@ -45,8 +45,10 @@ jobs:
               if (value === null || value === undefined) return "";
               return String(value)
                 .replace(/gh[pousr]_[A-Za-z0-9_]+/g, "[REDACTED_TOKEN]")
-                .replace(/(?:api[_-]?key|secret|token|password)\s*[:=]\s*['"]?[^'"\s]+/gi, "$1=[REDACTED]")
-                .replace(/(?:account[_-]?id|account)\s*[:=]\s*['"]?[A-Za-z0-9_-]+/gi, "$1=[REDACTED]")
+                .replace(/.*"rawPayload"\s*:.*/gi, "[REDACTED_RAW_PAYLOAD]")
+                .replace(/"(?:accountId|apiKey|secret|token|password|wallet)"\s*:\s*"[^"]*"/gi, "\"redacted\":\"[REDACTED]\"")
+                .replace(/(?:api[_-]?key|secret|token|password)\s*[:=]\s*['"]?[^'"\s]+/gi, "[REDACTED_KEY_VALUE]")
+                .replace(/(?:account[_-]?id|account)\s*[:=]\s*['"]?[A-Za-z0-9_-]+/gi, "[REDACTED_ACCOUNT_VALUE]")
                 .replace(/\b(?:0x)?[a-fA-F0-9]{40,}\b/g, "[REDACTED_ADDRESS_OR_KEY]")
                 .replace(/\b(?:bc1|[13])[a-zA-HJ-NP-Z0-9]{25,62}\b/g, "[REDACTED_WALLET]")
                 .replace(/\{[^{}]*(?:apiKey|secret|accountId|wallet|raw|payload)[^{}]*\}/gi, "[REDACTED_RAW_PAYLOAD]")
