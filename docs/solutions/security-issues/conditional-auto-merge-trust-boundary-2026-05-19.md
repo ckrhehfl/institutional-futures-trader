@@ -1,6 +1,7 @@
 ---
 title: Conditional auto-merge must preserve repository trust boundaries
 date: 2026-05-19
+last_updated: 2026-05-20
 category: docs/solutions/security-issues
 module: GitHub Actions auto-merge
 problem_type: security_issue
@@ -9,10 +10,11 @@ symptoms:
   - "An auto-merge workflow needs write permissions while evaluating untrusted PR metadata."
   - "A PR can become ineligible after auto-merge was already enabled."
   - "High-risk files can be moved with rename metadata that is not visible in name-only diff output."
+  - "Auto-merge can be enabled before asynchronous review and gate signals have had a deterministic settling period."
 root_cause: missing_workflow_step
 resolution_type: workflow_improvement
 severity: high
-tags: [auto-merge, github-actions, branch-protection, pull-request-target, trust-boundary]
+tags: [auto-merge, github-actions, branch-protection, pull-request-target, settling-guard]
 ---
 
 # Conditional auto-merge must preserve repository trust boundaries
@@ -21,12 +23,17 @@ tags: [auto-merge, github-actions, branch-protection, pull-request-target, trust
 
 PR #15 added conditional GitHub auto-merge for low-risk same-repository PRs. The durable risk is that an auto-merge workflow needs `contents: write` and `pull-requests: write`, so eligibility checks must be conservative and must never become a path around branch protection, AI Review Gate, or live trading gates.
 
+PR #18 added a deterministic settling guard after review showed that enabling auto-merge immediately after PR creation or the latest head update can race asynchronous checks and review signals. The durable lesson is that auto-merge enablement is separate from merge safety: it should request GitHub auto-merge only after deterministic eligibility and settling checks have passed.
+
 ## Symptoms
 
 - Auto-merge required write permissions, but those permissions were only acceptable for enabling or disabling GitHub auto-merge.
 - The workflow initially needed review to prove it did not call AI Review Gate, use `OPENAI_API_KEY`, post comments, or bypass branch protection.
 - A PR retargeted away from `main` could previously skip the workflow before the disable path ran.
 - A rename from a high-risk source path to a harmless-looking destination could be missed when only the current filename was inspected.
+- Event-only auto-merge evaluation could enable auto-merge immediately after PR creation or a fresh head update.
+- Using PR `updatedAt` as a settling signal caused a loop: the events that reran the workflow also refreshed `updatedAt`, so time passing alone could not make the PR eligible.
+- Ignoring a failed `--disable-auto` call could leave a stale auto-merge request armed while the settling job slept.
 
 ## What Didn't Work
 
@@ -34,6 +41,10 @@ PR #15 added conditional GitHub auto-merge for low-risk same-repository PRs. The
 - Relying on branch protection by convention alone was not enough; the workflow also had to avoid `--admin` and use GitHub auto-merge rather than direct merge.
 - Checking only PR head metadata or current filenames was too narrow. Eligibility can change after auto-merge is enabled, and rename metadata includes both current and previous paths.
 - Skipping the job at the job-level when `base != main` prevented the workflow from disabling auto-merge for same-repository PRs retargeted away from `main`.
+- Treating PR `updatedAt` as the event-only settling clock was unstable because `opened`, `synchronize`, `edited`, `reopened`, and `ready_for_review` update that timestamp around the same time the workflow starts.
+- Relying on commit authored or committed timestamps for head settling was too weak because those timestamps can be older than the actual push.
+- Relying on repository-level push time or the repository Events API was also not durable: unrelated branches can update repository push time, and the Events API is not real-time.
+- Letting `gh pr merge --disable-auto` fail with `|| true` made the settling guard advisory rather than fail-closed.
 
 ## Solution
 
@@ -51,6 +62,12 @@ Keep auto-merge as a separate, narrow workflow:
 - If a same-repository PR becomes ineligible, run `gh pr merge --disable-auto`.
 - For renamed files, inspect both `.filename` and `.previous_filename` from the GitHub PR files API.
 - Exclude workflow, prompt, policy, secret, credential, exchange adapter, and live-trading-boundary paths from auto-merge.
+- Before enabling auto-merge, apply deterministic settling windows:
+  - Wait until the PR is at least 600 seconds old from `created_at`.
+  - Wait 300 seconds for every otherwise eligible head update event before enabling auto-merge.
+- In an event-only workflow, document that time passing by itself does not trigger a new run. The running job must wait when a settling delay is required, or a later PR event must trigger a new evaluation.
+- Do not use PR `updatedAt` as an event-only settling criterion.
+- If the workflow cannot check or disable an existing auto-merge request before waiting, mark the PR ineligible so the guard fails closed.
 
 ## Why This Works
 
@@ -62,6 +79,10 @@ Rechecking `base.ref` inside the eligibility step matters because a PR can chang
 
 Rename metadata matters for high-risk exclusions. `--name-only` style checks can see only the destination path, but a rename from `.github/workflows/ci.yml` to `docs/ci.txt` is still a workflow change. Checking `previous_filename` closes that gap.
 
+Settling windows matter because GitHub auto-merge merges as soon as required checks and branch protection allow it. If auto-merge is enabled immediately after a PR is opened or a head commit changes, non-required asynchronous review signals may arrive too late. The guard does not replace AI Review Gate or branch protection; it only delays the moment the workflow asks GitHub to arm auto-merge.
+
+Failing closed on disable failures matters because an already armed auto-merge request can survive a same-repository push. If the workflow then sleeps while ignoring a failed disable call, required checks can pass and merge the PR before the settling window has any effect.
+
 ## Prevention
 
 - Keep write-permission automation separate from AI, secret-bearing, and live-trading workflows.
@@ -72,6 +93,11 @@ Rename metadata matters for high-risk exclusions. `--name-only` style checks can
 - Use PR file metadata for path policy checks and include both current and previous filenames.
 - Treat workflow/security/live-trading-boundary files as manual-merge-only even if all required checks pass.
 - Keep auto-merge separate from live trading enablement, exchange credentials, risk cap increase, and model live promotion.
+- Add deterministic settling before auto-merge enablement for event-only auto-merge workflows.
+- Do not use PR `updatedAt` as the settling clock in event-only workflows.
+- Document event-only limitations clearly: time passing does not create a new workflow run unless the job itself waits or another subscribed event occurs.
+- Treat auto-merge disable failures during settling as ineligible/fail-closed, not as warnings to ignore.
+- Keep `--admin`, direct merges, PR head checkout/build/run/install/import, AI secret use, and live trading enablement out of auto-merge workflows.
 
 ## Related Issues
 
