@@ -1,0 +1,137 @@
+name: Codex Task Request
+description: Safe task contract for Codex Cloud/Web or @codex work.
+title: "[Codex task]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this form to give Codex enough context to work safely from the Issue alone.
+
+        Humans remain task, policy, risk, and prohibition owners. CI, deterministic checks,
+        AI Review Gate, and policy gates handle code-quality validation.
+
+        Codex must not edit outside Allowed files / layers. Out-of-scope requests should be
+        classified as `OUT_OF_SCOPE_FOLLOW_UP` or `OWNER_DECISION_REQUIRED` using
+        `docs/PR_REVIEW_PLAYBOOK.md`. Unverified repo or PR state must be marked as
+        "confirmation needed" rather than guessed.
+
+  - type: textarea
+    id: task-summary
+    attributes:
+      label: Task summary
+      description: One concise sentence describing the task.
+      placeholder: "Example: Add a docs-only playbook for ..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope
+      description: What this task should change.
+      placeholder: |
+        - Add ...
+        - Update ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: non-goals
+    attributes:
+      label: Non-goals
+      description: What this task must not change or implement.
+      placeholder: |
+        - No workflow changes.
+        - No runtime/trading implementation.
+    validations:
+      required: true
+
+  - type: textarea
+    id: allowed-files
+    attributes:
+      label: Allowed files / layers
+      description: Exact files, directories, or architectural layers Codex may edit.
+      placeholder: |
+        - Create: path/to/file.md
+        - Modify: path/to/existing.md
+        - Do not modify anything else.
+    validations:
+      required: true
+
+  - type: textarea
+    id: validation-plan
+    attributes:
+      label: Validation plan
+      description: Commands and checks required before reporting completion.
+      placeholder: |
+        - git diff --check
+        - git status --short --untracked-files=all
+        - pytest/ruff only if code changed
+    validations:
+      required: true
+
+  - type: textarea
+    id: risk-boundary
+    attributes:
+      label: Risk boundary
+      description: Safety, secret, live/demo/paper, exchange-specific, and policy boundaries.
+      placeholder: |
+        - No secrets, API keys, account ids, wallet addresses, or .env content.
+        - No live trading enablement.
+        - Core/domain must remain exchange-independent.
+    validations:
+      required: true
+
+  - type: textarea
+    id: owner-decisions
+    attributes:
+      label: Owner decision points
+      description: Policy, risk, scope, or prohibition decisions that require a human owner.
+      placeholder: |
+        - OWNER_DECISION_REQUIRED if ...
+        - confirmation needed: ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: out-of-scope-handling
+    attributes:
+      label: Out-of-scope handling
+      description: How Codex should handle requests or reviews outside this task scope.
+      placeholder: |
+        - Do not implement scope expansions.
+        - Report out-of-scope items as follow-up or owner decision.
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: prohibited-areas
+    attributes:
+      label: Prohibited areas confirmation
+      description: Confirm this task does not ask Codex to implement or change these areas.
+      options:
+        - label: No live trading enablement.
+          required: true
+        - label: No exchange credentials, API keys, account ids, wallet addresses, or .env content.
+          required: true
+        - label: No risk cap increase.
+          required: true
+        - label: No model live promotion.
+          required: true
+        - label: No OMS, Risk runtime, BingX, strategy, ML, or trading engine implementation.
+          required: true
+        - label: No workflow, AI Gate, auto-merge, model routing, or branch protection changes unless explicitly scoped in a future infra PR.
+          required: true
+
+  - type: textarea
+    id: codex-instructions
+    attributes:
+      label: Codex instructions
+      description: Additional instructions for Codex. Keep this focused on task execution and boundaries.
+      placeholder: |
+        - Read AGENTS.md before editing.
+        - Use docs/PR_REVIEW_PLAYBOOK.md for review triage.
+        - Do not edit outside Allowed files / layers.
+        - Mark unverified repo or PR state as confirmation needed.
+    validations:
+      required: false
