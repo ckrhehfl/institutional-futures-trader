@@ -1,0 +1,242 @@
+name: Post Merge Lesson Capture
+
+on:
+  pull_request_target:
+    types: [closed]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: "Merged pull request number to inspect"
+        required: true
+        type: number
+
+permissions:
+  contents: read
+  pull-requests: read
+  checks: read
+
+concurrency:
+  group: post-merge-lesson-capture-${{ github.event_name }}-${{ github.event.pull_request.number || inputs.pr_number }}
+  cancel-in-progress: false
+
+jobs:
+  capture:
+    name: lesson-candidate-report
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    steps:
+      - name: Build lesson candidate report
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const fs = require("fs");
+            const path = require("path");
+
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const prNumber = context.eventName === "workflow_dispatch"
+              ? Number(core.getInput("pr_number", { required: true }))
+              : context.payload.pull_request.number;
+
+            const outputDir = ".post-merge-lesson-capture";
+            fs.mkdirSync(outputDir, { recursive: true });
+
+            const redact = (value) => {
+              if (value === null || value === undefined) return "";
+              return String(value)
+                .replace(/gh[pousr]_[A-Za-z0-9_]+/g, "[REDACTED_TOKEN]")
+                .replace(/(?:api[_-]?key|secret|token|password)\s*[:=]\s*['"]?[^'"\s]+/gi, "$1=[REDACTED]")
+                .replace(/[A-Za-z0-9+/]{32,}={0,2}/g, "[REDACTED_HIGH_ENTROPY]");
+            };
+
+            const truncate = (value, limit = 2000) => {
+              const text = redact(value);
+              return text.length > limit ? `${text.slice(0, limit)}... [truncated]` : text;
+            };
+
+            const listPaginated = async (method, params) => {
+              return github.paginate(method, params);
+            };
+
+            const prResponse = await github.rest.pulls.get({
+              owner,
+              repo,
+              pull_number: prNumber,
+            });
+            const pr = prResponse.data;
+
+            const files = await listPaginated(github.rest.pulls.listFiles, {
+              owner,
+              repo,
+              pull_number: prNumber,
+              per_page: 100,
+            });
+            const reviews = await listPaginated(github.rest.pulls.listReviews, {
+              owner,
+              repo,
+              pull_number: prNumber,
+              per_page: 100,
+            });
+            const reviewComments = await listPaginated(github.rest.pulls.listReviewComments, {
+              owner,
+              repo,
+              pull_number: prNumber,
+              per_page: 100,
+            });
+
+            let checkRuns = [];
+            if (pr.merge_commit_sha) {
+              try {
+                checkRuns = await listPaginated(github.rest.checks.listForRef, {
+                  owner,
+                  repo,
+                  ref: pr.merge_commit_sha,
+                  per_page: 100,
+                });
+              } catch (error) {
+                checkRuns = [];
+              }
+            }
+
+            const labels = pr.labels.map((label) => label.name);
+            const filePaths = files.flatMap((file) => (
+              file.previous_filename ? [file.filename, file.previous_filename] : [file.filename]
+            ));
+
+            const highSignalPattern = /(security|secret|credential|permission|token|trust|boundary|workflow|ci|ai[-_ ]?gate|auto[-_ ]?merge|policy|owner[-_ ]?decision|scope|live|risk|model[-_ ]?routing)/i;
+            const candidateSignals = [];
+
+            for (const label of labels) {
+              if (highSignalPattern.test(label)) {
+                candidateSignals.push(`label:${redact(label)}`);
+              }
+            }
+
+            for (const filePath of filePaths) {
+              if (highSignalPattern.test(filePath) || filePath.startsWith(".github/workflows/") || filePath.startsWith("docs/solutions/")) {
+                candidateSignals.push(`path:${redact(filePath)}`);
+              }
+            }
+
+            const reviewText = reviewComments
+              .map((comment) => `${comment.path || ""} ${comment.body || ""}`)
+              .join("\n");
+            if (highSignalPattern.test(reviewText)) {
+              candidateSignals.push("review-comments:policy-or-security-keyword");
+            }
+            if (reviews.length >= 3 || reviewComments.length >= 3) {
+              candidateSignals.push("review-activity:multiple-review-items");
+            }
+            if (pr.body && /ce-compound|durable lesson|learning note|docs\/solutions/i.test(pr.body)) {
+              candidateSignals.push("pr-body:lesson-language");
+            }
+
+            const uniqueSignals = [...new Set(candidateSignals)].slice(0, 20);
+            const lessonCandidate = uniqueSignals.length > 0;
+            const recommendedNextStep = lessonCandidate
+              ? "Human owner should inspect this artifact and decide whether to run /ce-compound or open a docs-only learning PR."
+              : "no lesson captured";
+
+            const report = {
+              schema_version: 1,
+              workflow: "post-merge-lesson-capture",
+              generated_at: new Date().toISOString(),
+              lesson_candidate: lessonCandidate,
+              reason: lessonCandidate ? "deterministic lesson signals detected" : "no durable lesson signals detected",
+              recommended_next_step: recommendedNextStep,
+              security_boundary: {
+                pr_head_code_executed: false,
+                pr_head_code_checked_out: false,
+                comments_or_issues_written: false,
+                docs_committed: false,
+                auto_merge_connected: false,
+                ai_review_gate_connected: false,
+                live_trading_connected: false,
+              },
+              pr: {
+                number: pr.number,
+                title: redact(pr.title),
+                state: pr.state,
+                merged: Boolean(pr.merged),
+                merged_at: pr.merged_at,
+                merge_commit_sha: pr.merge_commit_sha,
+                base_ref: pr.base.ref,
+                head_repo_full_name: pr.head.repo ? pr.head.repo.full_name : null,
+                same_repository: pr.head.repo ? pr.head.repo.full_name === `${owner}/${repo}` : false,
+                labels: labels.map(redact),
+                body_excerpt: truncate(pr.body || "", 1200),
+              },
+              changed_files: {
+                count: files.length,
+                paths: filePaths.map(redact).slice(0, 200),
+                truncated: filePaths.length > 200,
+              },
+              reviews: {
+                review_count: reviews.length,
+                review_comment_count: reviewComments.length,
+                states: reviews.reduce((accumulator, review) => {
+                  accumulator[review.state] = (accumulator[review.state] || 0) + 1;
+                  return accumulator;
+                }, {}),
+              },
+              checks: {
+                count: checkRuns.length,
+                conclusions: checkRuns.reduce((accumulator, run) => {
+                  const key = run.conclusion || run.status || "unknown";
+                  accumulator[key] = (accumulator[key] || 0) + 1;
+                  return accumulator;
+                }, {}),
+              },
+              possible_lesson_signals: uniqueSignals,
+            };
+
+            if (!pr.merged) {
+              report.lesson_candidate = false;
+              report.reason = "pull request is not merged";
+              report.recommended_next_step = "no lesson captured";
+            }
+
+            const markdown = [
+              "# Post-Merge Lesson Capture",
+              "",
+              `- PR: #${report.pr.number} ${report.pr.title}`,
+              `- Merged: ${report.pr.merged}`,
+              `- Lesson candidate: ${report.lesson_candidate}`,
+              `- Reason: ${report.reason}`,
+              `- Recommended next step: ${report.recommended_next_step}`,
+              "",
+              "## Changed Files",
+              "",
+              `- Count: ${report.changed_files.count}`,
+              ...report.changed_files.paths.slice(0, 50).map((filePath) => `- \`${filePath}\``),
+              report.changed_files.truncated ? "- [truncated]" : "",
+              "",
+              "## Possible Lesson Signals",
+              "",
+              ...(report.possible_lesson_signals.length > 0
+                ? report.possible_lesson_signals.map((signal) => `- ${signal}`)
+                : ["- no lesson captured"]),
+              "",
+              "## Boundary",
+              "",
+              "- This workflow does not checkout, build, run, install, or import PR head code.",
+              "- This workflow does not write comments, issues, commits, branches, or pull requests.",
+              "- This workflow is not connected to auto-merge, AI Review Gate verdicts, branch protection, or live trading enablement.",
+              "",
+            ].filter((line) => line !== "").join("\n");
+
+            const jsonPath = path.join(outputDir, "lesson-candidate-report.json");
+            const markdownPath = path.join(outputDir, "lesson-candidate-report.md");
+            fs.writeFileSync(jsonPath, `${JSON.stringify(report, null, 2)}\n`);
+            fs.writeFileSync(markdownPath, `${markdown}\n`);
+
+            await core.summary
+              .addRaw(markdown)
+              .write();
+
+      - name: Upload lesson capture artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: post-merge-lesson-capture
+          path: .post-merge-lesson-capture/
+          if-no-files-found: error
