@@ -69,6 +69,54 @@ false positive/false negative adjudication입니다.
 이 gate는 main branch merge safety를 다루며 live trading enablement와 연결하지 않습니다. live trading,
 exchange credentials, risk cap increase, model live promotion은 계속 별도 policy gate로 봉인합니다.
 
+## Model Routing Policy
+
+AI Review Gate는 `openai/codex-action`의 기본값에 의존하지 않고 `model`과 `effort`를 명시합니다. Routing decision은 GitHub API에서 가져온 PR labels, PR metadata, changed-file metadata(`filename`, `previous_filename`)만 사용하는 deterministic workflow logic입니다. AI model이 자기 model 또는 effort를 임의로 선택하거나 override하지 않습니다.
+
+Routing tiers:
+
+- `low`: docs-only PR이며 모든 변경 파일이 `docs/**` 또는 Markdown file이고 high-risk gate/policy path와 매칭되지 않습니다. `docs/solutions/**` learning note는 기본적으로 low-risk입니다. `gpt-5.4-mini`와 `low` effort를 사용합니다.
+- `default`: high-risk path 또는 label과 매칭되지 않는 일반 source/test/domain PR입니다. `gpt-5.4-mini`와 `medium` effort를 사용합니다.
+- `high`: workflow, prompt, trusted policy, security, live-boundary, adapter, exchange, OMS, Risk 관련 변경입니다. `gpt-5.3-codex`와 `high` effort를 사용합니다.
+
+High-risk paths:
+
+- `.github/workflows/**`
+- `.github/prompts/**`
+- `AGENTS.md`
+- `docs/AI_REVIEW_GATE.md`
+- `docs/AUTO_MERGE_POLICY.md`
+- `docs/PR_REVIEW_PLAYBOOK.md`
+- `docs/LIVE_TRADING_GATE.md`
+- `docs/DEVELOPMENT_ROADMAP.md`
+- `pyproject.toml`
+- `.pre-commit-config.yaml`
+- `.secrets.baseline`
+- `.env*`
+- `**/*secret*`
+- `**/*credential*`
+- `**/*key*`
+- `src/trading_system/adapters/exchanges/**`
+- `src/trading_system/**/oms/**`
+- `src/trading_system/**/risk/**`
+- live trading boundary 관련 파일명 또는 경로
+
+`gpt-5.3-codex` 접근 권한이 없거나 Codex Action이 high-risk PR에서 실패하면 더 싼 model로 조용히 fallback하지 않습니다. Missing, invalid, inconsistent Codex output은 기존 required-check-ready 동작처럼 `NEEDS_OWNER_POLICY`로 정규화되고 workflow가 fail-closed됩니다.
+
+이 gate는 `gpt-5.4-nano` 또는 `gpt-5-nano`를 사용하지 않습니다.
+
+Routing metadata는 GitHub Actions job summary와 JSON artifact의 `review_routing`에 `risk_tier`, `model`, `effort`, `reason`으로 기록합니다.
+
+Auto-merge workflow는 OpenAI API를 호출하지 않으며 이 비용 routing policy 대상이 아닙니다.
+
+OpenAI dashboard owner actions:
+
+- Project Monthly budget을 설정합니다.
+- Notification threshold를 설정합니다.
+- Model Usage에서 허용 model을 approved model 또는 owner-approved replacement로 제한합니다.
+- 비싼 model이 예상 밖으로 사용되는지 확인합니다.
+- 이 routing policy가 여러 PR에서 실행된 뒤 Usage dashboard에서 model별 사용량을 확인합니다.
+
 ## Conditional Auto-Merge Policy Boundary
 
 Infra PR-4에서는 별도 auto-merge workflow가 제한적으로 `contents: write` 및
