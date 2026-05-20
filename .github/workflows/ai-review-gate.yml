@@ -114,7 +114,7 @@ jobs:
           HIGH_RISK_RE = re.compile(
               r"(^\.github/workflows/|"
               r"^\.github/prompts/|"
-              r"^AGENTS\.md$|"
+              r"(^|/)AGENTS\.md$|"
               r"^pyproject\.toml$|"
               r"^\.pre-commit-config\.yaml$|"
               r"^\.secrets\.baseline$|"
