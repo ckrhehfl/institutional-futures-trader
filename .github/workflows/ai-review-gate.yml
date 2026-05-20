@@ -131,6 +131,19 @@ jobs:
               re.IGNORECASE,
           )
 
+          def emit_output(name: str, value: str) -> None:
+              safe_value = "".join(
+                  character if character == "\t" or ord(character) >= 32 else " "
+                  for character in value
+              )
+              print(f"{name}={safe_value}")
+
+          def emit_routing(tier: str, model: str, effort: str, reason: str) -> None:
+              emit_output("risk_tier", tier)
+              emit_output("codex_model", model)
+              emit_output("codex_effort", effort)
+              emit_output("risk_reason", reason)
+
           def gh_json(*args: str) -> object:
               completed = subprocess.run(
                   ["gh", *args],
@@ -146,10 +159,7 @@ jobs:
               files = gh_json("api", "--paginate", f"repos/{repo}/pulls/{pr_number}/files")
               pr = gh_json("pr", "view", pr_number, "--repo", repo, "--json", "labels")
           except Exception:
-              print("risk_tier=high")
-              print(f"codex_model={HIGH_RISK_MODEL}")
-              print("codex_effort=high")
-              print("risk_reason=metadata-unavailable")
+              emit_routing("high", HIGH_RISK_MODEL, "high", "metadata-unavailable")
               raise SystemExit(0)
 
           paths = []
@@ -170,35 +180,17 @@ jobs:
           solutions_only = bool(paths) and all(path.startswith("docs/solutions/") for path in paths)
 
           if high_risk_policy_doc:
-              print("risk_tier=high")
-              print(f"codex_model={HIGH_RISK_MODEL}")
-              print("codex_effort=high")
-              print(f"risk_reason=high-risk-policy-doc:{high_risk_policy_doc}")
+              emit_routing("high", HIGH_RISK_MODEL, "high", f"high-risk-policy-doc:{high_risk_policy_doc}")
           elif solutions_only:
-              print("risk_tier=low")
-              print(f"codex_model={LOW_RISK_MODEL}")
-              print("codex_effort=low")
-              print("risk_reason=docs-solutions-learning-note")
+              emit_routing("low", LOW_RISK_MODEL, "low", "docs-solutions-learning-note")
           elif high_risk_path:
-              print("risk_tier=high")
-              print(f"codex_model={HIGH_RISK_MODEL}")
-              print("codex_effort=high")
-              print(f"risk_reason=high-risk-path:{high_risk_path}")
+              emit_routing("high", HIGH_RISK_MODEL, "high", f"high-risk-path:{high_risk_path}")
           elif high_risk_label:
-              print("risk_tier=high")
-              print(f"codex_model={HIGH_RISK_MODEL}")
-              print("codex_effort=high")
-              print(f"risk_reason=high-risk-label:{high_risk_label}")
+              emit_routing("high", HIGH_RISK_MODEL, "high", f"high-risk-label:{high_risk_label}")
           elif docs_only:
-              print("risk_tier=low")
-              print(f"codex_model={LOW_RISK_MODEL}")
-              print("codex_effort=low")
-              print("risk_reason=docs-only")
+              emit_routing("low", LOW_RISK_MODEL, "low", "docs-only")
           else:
-              print("risk_tier=default")
-              print(f"codex_model={DEFAULT_MODEL}")
-              print("codex_effort=medium")
-              print("risk_reason=default")
+              emit_routing("default", DEFAULT_MODEL, "medium", "default")
           PY
 
       - name: Run Codex AI review
