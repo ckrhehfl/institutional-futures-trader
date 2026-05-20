@@ -153,10 +153,26 @@ jobs:
               )
               return json.loads(completed.stdout)
 
+          def flatten_paginated_files(payload: object) -> list[dict]:
+              if not isinstance(payload, list):
+                  raise TypeError("Paginated files response must be a list")
+
+              files = []
+              for item in payload:
+                  if isinstance(item, list):
+                      files.extend(file_info for file_info in item if isinstance(file_info, dict))
+                  elif isinstance(item, dict):
+                      files.append(item)
+                  else:
+                      raise TypeError("Paginated files response contains an unexpected item")
+
+              return files
+
           pr_number = os.environ["PR_NUMBER"]
           repo = os.environ["GITHUB_REPOSITORY"]
           try:
-              files = gh_json("api", "--paginate", f"repos/{repo}/pulls/{pr_number}/files")
+              files_payload = gh_json("api", "--paginate", "--slurp", f"repos/{repo}/pulls/{pr_number}/files")
+              files = flatten_paginated_files(files_payload)
               pr = gh_json("pr", "view", pr_number, "--repo", repo, "--json", "labels")
           except Exception:
               emit_routing("high", HIGH_RISK_MODEL, "high", "metadata-unavailable")
