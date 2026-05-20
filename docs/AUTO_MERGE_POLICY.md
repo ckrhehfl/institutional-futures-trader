@@ -65,6 +65,7 @@ Before enabling auto-merge, the workflow waits for deterministic settling window
 
 - If the PR is less than 600 seconds old from `created_at`, the workflow disables any existing auto-merge for the same-repository PR and waits for the remaining PR-age window.
 - For every otherwise eligible event, the workflow disables any existing auto-merge for the same-repository PR and waits 300 seconds before enabling auto-merge again.
+- If the workflow cannot check or disable existing auto-merge before waiting, the PR becomes ineligible so the settling guard fails closed instead of leaving a stale auto-merge request armed.
 
 Blocking labels, non-`main` base branches, fork or external PRs, draft state, closed state, and high-risk file changes remain immediate ineligible outcomes and do not wait for the settling window.
 
