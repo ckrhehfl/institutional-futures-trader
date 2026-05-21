@@ -240,7 +240,7 @@ Suggested keys:
 - post-merge lesson: `source_pr_number + merge_sha + lesson_slug`
 - stale state: `stale_state + pr_number + head_sha + reason_code`
 
-Dedup/idempotency ledger 저장 위치는 확인 필요입니다. Ledger 저장 위치가 확정되지 않으면 Discord-1a 구현을 시작하지 않습니다.
+Dedup/idempotency ledger storage is `OWNER_DECISION_REQUIRED`. This document does not approve a storage location. A future owner-approved PR must record the concrete ledger storage decision before Discord-1a implementation starts.
 
 ## Failure Classes And Stop Policy
 
@@ -302,27 +302,27 @@ Forbidden permissions:
 Security requirements:
 
 - Webhook URL is a secret and must never be logged, printed, or sent to Discord.
-- Webhook URL storage and rotation are 확인 필요.
-- Discord channel access scope is 확인 필요.
-- Audit log storage is 확인 필요.
+- Webhook URL storage and rotation are `OWNER_DECISION_REQUIRED`.
+- Discord channel access scope is `OWNER_DECISION_REQUIRED`.
+- Audit log storage is `OWNER_DECISION_REQUIRED`.
 - Fork/external PR notification must be redacted summary only.
 - Live trading, credentials, risk cap increase, and model live promotion are hard stop boundaries.
 
 ## Owner Decisions Required
 
-Owner approval is required before implementation.
+Owner approval is required before implementation. `OWNER_DECISION_REQUIRED` is an explicit stop state, not an unfinished placeholder. Items in this state are not approved by this document and must be resolved in a future owner-approved PR before implementation.
 
-- Discord webhook URL 저장/회전 방식
-- Discord 알림 채널/접근자 범위
+- Discord webhook URL 저장/회전 방식 (`OWNER_DECISION_REQUIRED`)
+- Discord 알림 채널/접근자 범위 (`OWNER_DECISION_REQUIRED`)
 - raw event retention policy
-- audit log 저장 위치
-- idempotency/dedup ledger 저장 위치
-- rate limit 기준
-- failure notification policy
-- hosting 방식
-- GitHub Actions 기반인지 외부 hosting 기반인지
-- Discord-1a 구현 PR에서 허용할 파일 목록
-- fork/external PR 알림 허용 범위
+- audit log 저장 위치 (`OWNER_DECISION_REQUIRED`)
+- idempotency/dedup ledger 저장 위치 (`OWNER_DECISION_REQUIRED`)
+- rate limit 기준 (`OWNER_DECISION_REQUIRED`)
+- failure notification policy (`OWNER_DECISION_REQUIRED`)
+- hosting 방식 (`OWNER_DECISION_REQUIRED`)
+- GitHub Actions 기반인지 외부 hosting 기반인지 (`OWNER_DECISION_REQUIRED`)
+- Discord-1a 구현 PR에서 허용할 파일 목록 (`OWNER_DECISION_REQUIRED`)
+- fork/external PR 알림 허용 범위 (`OWNER_DECISION_REQUIRED`)
 - daily Codex request cap
 
 If these decisions are not recorded, implementation is prohibited.
@@ -380,6 +380,6 @@ Possible future implementation shapes:
 - external hosting based notification
 - docs-only refinement before implementation
 
-All are 확인 필요. No implementation may begin before owner approval.
+All remain `OWNER_DECISION_REQUIRED` and are not approved by this document. No implementation may begin before owner approval.
 
 Owner approval before implementation.
