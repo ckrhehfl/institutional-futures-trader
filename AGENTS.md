@@ -127,6 +127,10 @@ Codex review는 다음에 집중합니다.
 - PR 종료 후 `/ce-compound` 또는 수동 compound learning note를 실행합니다.
 - 반복 리뷰 피드백은 test, AGENTS.md, PR template, docs, playbook 중 하나로 반영합니다.
 - 새 커스텀 skill은 같은 긴 프롬프트가 3번 이상 반복될 때만 검토합니다.
+- `docs/AI_OPERATOR_LOOP.md`는 계획, 구현, 리뷰, triage, fix, merge eligibility, lesson capture의 AI 운영 루프를 정의합니다.
+- 사람은 code quality reviewer가 아니라 cost, direction, hard prohibition owner입니다.
+- Code quality와 merge readiness는 CI, AI Review Gate, deterministic checks, policy gates가 판단합니다.
+- 새 API bot, workflow automation, write permission은 명시적 scope 없이 operator loop 보완용으로 추가하지 않습니다.
 
 ## Documentation Rules
 
