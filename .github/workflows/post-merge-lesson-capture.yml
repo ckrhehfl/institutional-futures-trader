@@ -41,7 +41,7 @@ jobs:
               throw new Error("A valid pull request number is required.");
             }
 
-            const outputDir = ".post-merge-lesson-capture";
+            const outputDir = "post-merge-lesson-capture";
             fs.mkdirSync(outputDir, { recursive: true });
 
             const redact = (value) => {
@@ -292,5 +292,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: post-merge-lesson-capture
-          path: .post-merge-lesson-capture/
+          path: post-merge-lesson-capture/
           if-no-files-found: error
