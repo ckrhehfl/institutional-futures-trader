@@ -51,7 +51,7 @@ GitHub Issue task contract 생성을 시작합니다.
 
 AI-managed task 또는 PR의 현재 상태를 요약합니다.
 
-- Shows: state, GitHub Issue/PR URL, checks, AI Review Gate verdict, labels, blocker summary, last activity age
+- Shows: state, GitHub Issue/PR URL, checks, AI Review Gate verdict, sanitized or redacted labels, blocker summary, last activity age
 - Does not show: raw secrets, raw PR body, raw untrusted diff text
 - Does not change: PR, branch, labels, comments, merge state
 
