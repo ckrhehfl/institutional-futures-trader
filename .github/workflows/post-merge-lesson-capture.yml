@@ -142,7 +142,7 @@ jobs:
               return accumulator;
             }, {});
 
-            const highSignalPattern = /(security|secret|credential|permission|token|trust[-_ ]?boundary|workflow|ci|ai[-_ ]?gate|auto[-_ ]?merge|policy|owner[-_ ]?decision|scope|live[-_ ]?trading|trading[-_ ]?boundary|risk|model[-_ ]?routing)/i;
+            const highSignalPattern = /(security|secret|credential|permission|token|trust[-_ ]?boundary|workflow|\bci\b|ai[-_ ]?gate|auto[-_ ]?merge|policy|owner[-_ ]?decision|scope|live[-_ ]?trading|trading[-_ ]?boundary|risk|model[-_ ]?routing)/i;
             const candidateSignals = [];
 
             for (const label of labels) {
