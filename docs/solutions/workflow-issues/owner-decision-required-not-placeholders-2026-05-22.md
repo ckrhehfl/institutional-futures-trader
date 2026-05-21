@@ -1,5 +1,5 @@
 ---
-title: Owner decisions in committed docs must be explicit stop states, not placeholders
+title: Committed docs must use OWNER_DECISION_REQUIRED instead of placeholders
 date: 2026-05-22
 category: docs/solutions/workflow-issues
 module: AI Operator Loop
@@ -7,66 +7,66 @@ problem_type: workflow_issue
 component: development_workflow
 severity: medium
 applies_when:
-  - "Writing docs-only planning PRs that become repository source of truth"
-  - "Leaving implementation prerequisites unresolved in committed documentation"
-  - "AI Review Gate fails documentation because unresolved decisions look like placeholders"
-  - "Distinguishing in-scope doc fixes from owner sign-off blockers"
+  - "docs-only planning PR이 repository source of truth가 되는 경우"
+  - "committed documentation에 구현 전제 조건이 미정으로 남는 경우"
+  - "AI Review Gate가 unresolved decision을 placeholder로 판단하는 경우"
+  - "in-scope doc fix와 owner sign-off blocker를 구분해야 하는 경우"
 tags: [documentation, owner-decision, ai-review-gate, review-triage, control-plane]
 ---
 
-# Owner decisions in committed docs must be explicit stop states, not placeholders
+# Committed docs must use OWNER_DECISION_REQUIRED instead of placeholders
 
 ## Context
 
-PR #31 added `docs/DISCORD_1A_NOTIFICATION_ONLY_PLAN.md` as the implementation-before-contract for Discord-1a notification-only work. The PR intentionally did not implement a Discord bot, webhook sender, GitHub Actions workflow, OpenAI API automation, GitHub write path, or trading behavior.
+PR #31은 Discord-1a notification-only 작업의 구현 전 계약으로 `docs/DISCORD_1A_NOTIFICATION_ONLY_PLAN.md`를 추가했다. 이 PR은 의도적으로 Discord bot, webhook sender, GitHub Actions workflow, OpenAI API automation, GitHub write path, trading behavior를 구현하지 않았다.
 
-AI Review Gate initially failed because the committed documentation used `확인 필요` for unresolved decisions such as dedup/idempotency ledger storage. That wording looked like an unfinished marker or ambiguous placeholder requirement, which violates the repository documentation rule that committed docs must not leave unfinished markers or ambiguous placeholder requirements.
+처음 AI Review Gate는 committed documentation 안에 unresolved decision을 `확인 필요`처럼 적은 점을 이유로 실패했다. 예를 들어 dedup/idempotency ledger storage 같은 항목이 명확한 정책 상태가 아니라 unfinished marker 또는 ambiguous placeholder requirement처럼 보였다. 이는 committed documentation에 unfinished marker나 ambiguous placeholder requirement를 남기지 말라는 저장소 documentation rule과 충돌한다.
 
-The correct fix was not owner sign-off. The gate classification was `IN_SCOPE_DOC_OR_TEST_FIX`: replace placeholder wording with an explicit policy state. The PR changed those unresolved items to `OWNER_DECISION_REQUIRED`, explained that it is a stop state, and stated that the document does not approve implementation until a future owner-approved PR records concrete decisions.
+올바른 대응은 owner sign-off를 요청하는 것이 아니었다. Gate classification은 `IN_SCOPE_DOC_OR_TEST_FIX`였고, 필요한 수정은 placeholder wording을 명시적인 policy state로 바꾸는 것이었다. PR #31은 해당 항목들을 `OWNER_DECISION_REQUIRED`로 바꾸고, 이것이 `stop state`이며 future owner-approved PR이 concrete decision을 기록하기 전까지 구현을 승인하지 않는다고 설명했다.
 
 ## Guidance
 
-Do not leave open-ended phrases such as `확인 필요`, `TBD`, `TODO`, `decide later`, or similar placeholders in committed planning docs.
+Committed planning docs에는 `확인 필요`, `TBD`, `TODO`, `decide later`처럼 열린 표현을 남기지 않는다.
 
-If a decision is intentionally unresolved, write it as a policy state:
+의도적으로 unresolved decision을 남겨야 한다면 policy state로 쓴다.
 
 - `OWNER_DECISION_REQUIRED`
-- not approved by this document
-- implementation prohibited until a future owner-approved PR records the concrete decision
+- 이 문서는 해당 결정을 승인하지 않음
+- future owner-approved PR이 concrete decision을 기록하기 전까지 구현 금지
 
-This turns ambiguity into an enforceable boundary. It also preserves the intended human role: the owner decides policy, risk, cost, permissions, and prohibitions; the document records that implementation must stop until that decision exists.
+이렇게 쓰면 애매한 문구가 enforceable boundary로 바뀐다. 또한 사람의 역할도 유지된다. Owner는 policy, risk, cost, permissions, prohibitions를 결정하고, 문서는 그 결정이 존재하기 전까지 구현이 멈춰야 한다는 사실을 기록한다.
 
 ## Why This Matters
 
-Docs-only planning PRs are still committed repository source of truth. Future agents may treat them as operating contracts. A placeholder like `확인 필요` can be interpreted as unfinished work, informal intent, or permission for the next agent to invent a decision.
+Docs-only planning PR도 merge되면 committed repository `source of truth`가 된다. Future agent는 그 문서를 운영 계약처럼 읽을 수 있다. `확인 필요` 같은 placeholder는 unfinished work, informal intent, 또는 다음 agent가 결정을 만들어도 된다는 허가처럼 해석될 수 있다.
 
-An explicit stop state prevents that drift. It tells reviewers and agents:
+명시적인 `stop state`는 이런 drift를 막는다. Reviewer와 agent에게 다음을 분명히 알려준다.
 
-1. the decision is known to be unresolved
-2. the current PR does not approve it
-3. implementation must stop there
-4. owner approval is required in a later PR before proceeding
+1. 해당 결정은 unresolved 상태임
+2. 현재 PR은 그 결정을 승인하지 않음
+3. 구현은 그 지점에서 멈춰야 함
+4. 진행하려면 later PR에서 owner approval이 필요함
 
 ## Review Triage Rule
 
-When AI Review Gate fails on a docs-only PR, inspect the gate classification before deciding how to respond.
+AI Review Gate가 docs-only PR에서 실패하면 대응하기 전에 gate classification을 먼저 확인한다.
 
-- If the classification is `IN_SCOPE_DOC_OR_TEST_FIX`, fix the document within the current PR scope.
-- If the classification is `OWNER_DECISION_REQUIRED`, stop and wait for owner sign-off.
-- Do not assume every AI Review Gate failure on policy docs is an owner sign-off blocker.
-- Do not keep editing a policy doc when the missing item is truly an owner decision.
+- Classification이 `IN_SCOPE_DOC_OR_TEST_FIX`이면 현재 PR scope 안에서 문서를 수정한다.
+- Classification이 `OWNER_DECISION_REQUIRED`이면 멈추고 owner sign-off를 기다린다.
+- Policy docs에서 발생한 AI Review Gate failure가 항상 owner sign-off blocker라고 가정하지 않는다.
+- 정말 owner decision이 필요한 항목이라면 policy doc을 계속 고쳐서 해결하려 하지 않는다.
 
-PR #31 is the in-scope doc-fix case: the missing clarity was how unresolved decisions were represented, not whether the owner approved Discord-1a implementation.
+PR #31은 in-scope doc-fix 사례였다. 부족했던 것은 owner가 Discord-1a implementation을 승인했는지가 아니라 unresolved decision을 어떻게 표현했는지였다.
 
 ## Example
 
-Avoid this in committed docs:
+Committed docs에서 피해야 할 표현:
 
 ```markdown
 Dedup/idempotency ledger 저장 위치는 확인 필요입니다.
 ```
 
-Prefer this:
+권장 표현:
 
 ```markdown
 Dedup/idempotency ledger storage is `OWNER_DECISION_REQUIRED`.
@@ -76,13 +76,13 @@ PR must record the concrete ledger storage decision before implementation starts
 
 ## When To Apply
 
-Use this guidance when:
+이 지침은 다음 상황에 적용한다.
 
-- writing implementation-before-contract documents
-- documenting future workflow, automation, webhook, permission, or control-plane work
-- listing unresolved storage, hosting, permission, channel-access, or retention decisions
-- responding to AI Review Gate documentation failures
-- converting planning notes into committed repository docs
+- implementation-before-contract 문서를 작성할 때
+- future workflow, automation, webhook, permission, control-plane 작업을 문서화할 때
+- unresolved storage, hosting, permission, channel-access, retention decision을 나열할 때
+- AI Review Gate documentation failure에 대응할 때
+- planning note를 committed repository docs로 승격할 때
 
 ## Related
 
