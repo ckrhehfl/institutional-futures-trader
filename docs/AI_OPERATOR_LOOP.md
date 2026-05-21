@@ -37,6 +37,7 @@
 
 - Codex Cloud/Web for delegated planning, implementation, review, and fix loops
 - GitHub `@codex review` / `@codex fix` style flow where available
+- GitHub `@codex` comments are intentional operator actions and should stay within the PR's Scope, Non-goals, and Allowed files
 - Codex Automations as a future PR babysitter candidate
 - GitHub Copilot cloud agent as a comparison candidate only
 
