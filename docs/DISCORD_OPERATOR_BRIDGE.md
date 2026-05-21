@@ -111,11 +111,12 @@ Triggers include:
 - Discord receives summaries of GitHub Issue/PR state.
 - Read-only permissions only.
 - No issue creation, PR comments, fixes, merges, or label writes.
+- This is the first implementation target after Discord-0.
 
 ### Discord-2: `/pm start` Creates GitHub Issue
 
 - `/pm start` may create a GitHub Issue using the repository task contract.
-- GitHub Issues write may be considered.
+- GitHub Issues write may be considered only after a later owner decision.
 - The Issue remains the source of truth.
 - Starting Codex work from the Issue is confirmation needed.
 
@@ -209,8 +210,8 @@ Discord text, GitHub Issue body, PR body, comments, labels, file names, and diff
 ## Permission Model
 
 - Discord-0: no permissions
-- Discord-1: read-only / notification-only
-- Discord-2: GitHub Issues write may be considered
+- Discord-1 / v1: read-only / notification-only
+- Discord-2: GitHub Issues write may be considered only after a later owner decision
 - Discord-3: PR watcher should prefer read permissions
 - Discord-4: auto-merge status tracking should read existing status only
 
@@ -316,7 +317,7 @@ Mitigation: Keep CI, AI Review Gate, branch protection, conditional auto-merge, 
 
 ## Owner Decision Points / 확인 필요
 
-- Whether v1 starts as notification-only or Issues write
+- Whether Discord-2 may add GitHub Issues write after v1 notification-only is validated
 - Discord command approver list
 - `max_codex_requests_per_day`
 - auto-merge blocked timeout threshold
