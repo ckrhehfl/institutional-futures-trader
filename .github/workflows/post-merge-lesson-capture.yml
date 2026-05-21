@@ -35,8 +35,11 @@ jobs:
             const owner = context.repo.owner;
             const repo = context.repo.repo;
             const prNumber = context.eventName === "workflow_dispatch"
-              ? Number(core.getInput("pr_number", { required: true }))
+              ? Number(context.payload.inputs.pr_number)
               : context.payload.pull_request.number;
+            if (!Number.isInteger(prNumber) || prNumber <= 0) {
+              throw new Error("A valid pull request number is required.");
+            }
 
             const outputDir = ".post-merge-lesson-capture";
             fs.mkdirSync(outputDir, { recursive: true });
