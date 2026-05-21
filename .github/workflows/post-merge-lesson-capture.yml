@@ -103,6 +103,8 @@ jobs:
               pull_number: prNumber,
               per_page: 100,
             });
+            const apiReportedFileCount = Number(pr.changed_files || 0);
+            const fileListingTruncated = apiReportedFileCount > files.length;
             const reviews = await listPaginated(github.rest.pulls.listReviews, {
               owner,
               repo,
@@ -154,6 +156,9 @@ jobs:
                 candidateSignals.push(`path-category:${classifyPath(filePath)}`);
               }
             }
+            if (fileListingTruncated) {
+              candidateSignals.push("changed-files:truncated-listing");
+            }
 
             const reviewText = reviewComments
               .map((comment) => `${comment.path || ""} ${comment.body || ""}`)
@@ -204,7 +209,10 @@ jobs:
                 label_count: labels.length,
               },
               changed_files: {
-                count: files.length,
+                api_reported_count: apiReportedFileCount,
+                retrieved_count: files.length,
+                complete: !fileListingTruncated,
+                truncated: fileListingTruncated,
                 categories: fileCategories,
                 raw_paths_exported: false,
               },
@@ -244,7 +252,10 @@ jobs:
               "",
               "## Changed Files",
               "",
-              `- Count: ${report.changed_files.count}`,
+              `- API reported count: ${report.changed_files.api_reported_count}`,
+              `- Retrieved count: ${report.changed_files.retrieved_count}`,
+              `- Complete listing: ${report.changed_files.complete}`,
+              `- Truncated listing: ${report.changed_files.truncated}`,
               ...Object.entries(report.changed_files.categories).map(([category, count]) => `- ${category}: ${count}`),
               "- Raw paths exported: false",
               "",
