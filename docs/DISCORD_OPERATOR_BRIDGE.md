@@ -244,7 +244,7 @@ Loop guard counters should be evaluated before requesting another AI action.
 Stop the loop when any of these occur:
 
 - same check fails twice for the same reason
-- AI Review Gate returns `FAIL` twice
+- AI Review Gate returns `FAIL` once
 - AI Review Gate returns `NEEDS_OWNER_POLICY` once
 - allowed files / layers violation
 - live trading, credentials, risk cap, or model promotion detected
