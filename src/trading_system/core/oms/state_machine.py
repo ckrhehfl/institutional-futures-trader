@@ -25,13 +25,8 @@ OPERATOR_REVIEW_ORDER_STATUSES: frozenset[OrderStatus] = frozenset({OrderStatus.
 
 ALLOWED_ORDER_STATUS_TRANSITIONS: Mapping[OrderStatus, frozenset[OrderStatus]] = MappingProxyType(
     {
-        OrderStatus.CREATED: frozenset({OrderStatus.PENDING_RISK}),
-        OrderStatus.PENDING_RISK: frozenset(
-            {
-                OrderStatus.RISK_APPROVED,
-                OrderStatus.RISK_REJECTED,
-            }
-        ),
+        OrderStatus.CREATED: frozenset({OrderStatus.RISK_APPROVED}),
+        OrderStatus.PENDING_RISK: frozenset(),
         OrderStatus.RISK_REJECTED: frozenset(),
         OrderStatus.RISK_APPROVED: frozenset({OrderStatus.ACCEPTED}),
         OrderStatus.ACCEPTED: frozenset({OrderStatus.SUBMITTED}),

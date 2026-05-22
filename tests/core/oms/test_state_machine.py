@@ -14,9 +14,7 @@ from trading_system.core.oms import (
 
 ALLOWED_TRANSITIONS = frozenset(
     {
-        (OrderStatus.CREATED, OrderStatus.PENDING_RISK),
-        (OrderStatus.PENDING_RISK, OrderStatus.RISK_APPROVED),
-        (OrderStatus.PENDING_RISK, OrderStatus.RISK_REJECTED),
+        (OrderStatus.CREATED, OrderStatus.RISK_APPROVED),
         (OrderStatus.RISK_APPROVED, OrderStatus.ACCEPTED),
         (OrderStatus.ACCEPTED, OrderStatus.SUBMITTED),
         (OrderStatus.SUBMITTED, OrderStatus.PARTIALLY_FILLED),
@@ -62,9 +60,9 @@ def test_ensure_valid_order_status_transition_returns_normalized_tuple() -> None
 
 
 def test_raw_enum_strings_are_normalized() -> None:
-    assert ensure_valid_order_status_transition("created", "pending_risk") == (
+    assert ensure_valid_order_status_transition("created", "risk_approved") == (
         OrderStatus.CREATED,
-        OrderStatus.PENDING_RISK,
+        OrderStatus.RISK_APPROVED,
     )
     assert is_terminal_order_status("filled")
     assert (
@@ -84,13 +82,42 @@ def test_created_to_submitted_is_forbidden() -> None:
     assert not is_valid_order_status_transition(OrderStatus.CREATED, OrderStatus.SUBMITTED)
 
 
+def test_created_to_risk_approved_is_valid() -> None:
+    assert is_valid_order_status_transition(OrderStatus.CREATED, OrderStatus.RISK_APPROVED)
+
+
+def test_created_to_pending_risk_is_forbidden() -> None:
+    assert not is_valid_order_status_transition(OrderStatus.CREATED, OrderStatus.PENDING_RISK)
+
+
+def test_pending_risk_to_risk_approved_is_forbidden() -> None:
+    assert not is_valid_order_status_transition(OrderStatus.PENDING_RISK, OrderStatus.RISK_APPROVED)
+
+
+def test_pending_risk_to_risk_rejected_is_forbidden() -> None:
+    assert not is_valid_order_status_transition(OrderStatus.PENDING_RISK, OrderStatus.RISK_REJECTED)
+
+
 def test_pending_risk_to_submitted_is_forbidden() -> None:
     assert not is_valid_order_status_transition(OrderStatus.PENDING_RISK, OrderStatus.SUBMITTED)
+
+
+def test_pending_risk_has_no_valid_outbound_transitions() -> None:
+    for target in OrderStatus:
+        assert not is_valid_order_status_transition(OrderStatus.PENDING_RISK, target)
 
 
 def test_risk_rejected_has_no_valid_outbound_transitions() -> None:
     for target in OrderStatus:
         assert not is_valid_order_status_transition(OrderStatus.RISK_REJECTED, target)
+
+
+@pytest.mark.parametrize("target", [OrderStatus.PENDING_RISK, OrderStatus.RISK_REJECTED])
+def test_no_status_can_transition_into_pre_order_or_risk_rejected_statuses(
+    target: OrderStatus,
+) -> None:
+    for current in OrderStatus:
+        assert not is_valid_order_status_transition(current, target)
 
 
 @pytest.mark.parametrize(
