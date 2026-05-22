@@ -1,0 +1,296 @@
+name: Discord-1a Notification
+
+on:
+  workflow_dispatch:
+    inputs:
+      send_discord:
+        description: "Send a redacted manual smoke message to Discord"
+        required: false
+        type: boolean
+        default: false
+  workflow_run:
+    workflows:
+      - CI
+      - AI Review Gate
+      - Auto Merge
+      - Post Merge Lesson Capture
+    types: [completed]
+
+permissions:
+  contents: read
+  actions: read
+  checks: read
+  pull-requests: read
+
+concurrency:
+  group: discord-1a-notification-${{ github.event_name }}-${{ github.run_id }}
+  cancel-in-progress: false
+
+jobs:
+  notify:
+    name: redacted-notification
+    runs-on: ubuntu-latest
+    steps:
+      - name: Build and send redacted notification
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_1A_WEBHOOK_URL }}
+          SEND_DISCORD_INPUT: ${{ inputs.send_discord }}
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          import sys
+          import urllib.error
+          import urllib.request
+
+          allowed_workflows = {
+              "CI",
+              "AI Review Gate",
+              "Auto Merge",
+              "Post Merge Lesson Capture",
+          }
+          allowed_owner_actions = {
+              "NO_ACTION",
+              "CHECK_SOURCE_OF_TRUTH",
+              "OWNER_DECISION_REQUIRED",
+              "STOPPED_POLICY",
+              "SUPPRESSED_STALE_STATE",
+              "SUPPRESSED_EXTERNAL_PR",
+              "SUPPRESSED_REDACTION_UNCERTAIN",
+          }
+
+          event_name = os.environ["GITHUB_EVENT_NAME"]
+          repository = os.environ["GITHUB_REPOSITORY"]
+          run_id = os.environ["GITHUB_RUN_ID"]
+          token = os.environ["GH_TOKEN"]
+          discord_target = os.environ.get("DISCORD_WEBHOOK_URL", "")
+          send_input = os.environ.get("SEND_DISCORD_INPUT", "false").lower()
+          summary_path = os.environ["GITHUB_STEP_SUMMARY"]
+
+          with open(os.environ["GITHUB_EVENT_PATH"], encoding="utf-8") as event_file:
+              event = json.load(event_file)
+
+          result = {
+              "event_type": event_name,
+              "trusted_workflow": "UNAVAILABLE",
+              "pr_number": "UNAVAILABLE",
+              "short_head_sha": "UNAVAILABLE",
+              "suppression_reason": "none",
+              "discord_send_attempted": "false",
+              "discord_send_result": "not_requested",
+              "owner_action": "NO_ACTION",
+              "revalidation": "not_started",
+          }
+          payload = None
+          suppress = False
+
+          def set_suppressed(reason, owner_action):
+              result["suppression_reason"] = reason
+              result["owner_action"] = owner_action
+
+          def graphql_pull_request(number):
+              owner, repo = repository.split("/", 1)
+              query = """
+              query($owner: String!, $repo: String!, $number: Int!) {
+                repository(owner: $owner, name: $repo) {
+                  pullRequest(number: $number) {
+                    number
+                    state
+                    baseRefName
+                    headRefOid
+                    url
+                    headRepository {
+                      nameWithOwner
+                    }
+                  }
+                }
+              }
+              """
+              request_payload = json.dumps({
+                  "query": query,
+                  "variables": {
+                      "owner": owner,
+                      "repo": repo,
+                      "number": int(number),
+                  },
+              }).encode("utf-8")
+              request = urllib.request.Request(
+                  "https://api.github.com/graphql",
+                  data=request_payload,
+                  headers={
+                      "Authorization": f"Bearer {token}",
+                      "Content-Type": "application/json",
+                      "Accept": "application/vnd.github+json",
+                  },
+                  method="POST",
+              )
+              with urllib.request.urlopen(request, timeout=20) as response:
+                  graphql_response = json.loads(response.read().decode("utf-8"))
+              if graphql_response.get("errors"):
+                  raise RuntimeError("GitHub GraphQL returned errors")
+              pr = graphql_response["data"]["repository"]["pullRequest"]
+              if pr is None:
+                  raise RuntimeError("Pull request not found")
+              return pr
+
+          def build_payload(fields):
+              owner_action = fields["owner_action"]
+              if owner_action not in allowed_owner_actions:
+                  raise RuntimeError("Owner action category is not allowlisted")
+              lines = [
+                  "Discord-1a redacted status",
+                  f"repository: {fields['repository']}",
+                  f"event: {fields['event_type']}",
+                  f"workflow: {fields['workflow_name']}",
+                  f"status: {fields['check_status']}",
+                  f"conclusion: {fields['check_conclusion']}",
+                  f"source_revalidation: {fields['revalidation']}",
+                  f"workflow_run_id: {fields['workflow_run_id']}",
+                  f"owner_action: {owner_action}",
+              ]
+              if fields.get("pr_number") != "UNAVAILABLE":
+                  lines.extend([
+                      f"pr_number: {fields['pr_number']}",
+                      f"pr_state: {fields['pr_state']}",
+                      f"base_branch: {fields['base_branch']}",
+                      f"short_head_sha: {fields['short_head_sha']}",
+                      f"pr_url: {fields['pr_url']}",
+                  ])
+              if fields.get("ai_review_gate_verdict") is not None:
+                  lines.append(f"ai_review_gate_verdict_category: {fields['ai_review_gate_verdict']}")
+              return {"content": "\n".join(lines)}
+
+          try:
+              if event_name == "workflow_dispatch":
+                  result["trusted_workflow"] = "manual"
+                  result["revalidation"] = "manual_smoke"
+                  send_requested = send_input == "true"
+                  payload = build_payload({
+                      "repository": repository,
+                      "event_type": event_name,
+                      "workflow_name": "manual",
+                      "check_status": "manual",
+                      "check_conclusion": "manual",
+                      "revalidation": "manual_smoke",
+                      "workflow_run_id": run_id,
+                      "owner_action": "NO_ACTION",
+                      "pr_number": "UNAVAILABLE",
+                      "ai_review_gate_verdict": None,
+                  })
+              elif event_name == "workflow_run":
+                  workflow_run = event.get("workflow_run", {})
+                  workflow_name = workflow_run.get("name", "")
+                  result["trusted_workflow"] = workflow_name or "UNAVAILABLE"
+                  workflow_run_id = str(workflow_run.get("id", "UNAVAILABLE"))
+                  workflow_status = workflow_run.get("status") or "UNAVAILABLE"
+                  workflow_conclusion = workflow_run.get("conclusion") or "UNAVAILABLE"
+
+                  if workflow_name not in allowed_workflows:
+                      suppress = True
+                      set_suppressed("workflow_not_allowlisted", "CHECK_SOURCE_OF_TRUTH")
+                  pr_refs = workflow_run.get("pull" + "_requests") or []
+                  if not suppress and not pr_refs:
+                      suppress = True
+                      set_suppressed("missing_pr_number", "CHECK_SOURCE_OF_TRUTH")
+
+                  pr_number = None
+                  if not suppress:
+                      pr_number = pr_refs[0].get("number")
+                      if not pr_number:
+                          suppress = True
+                          set_suppressed("missing_pr_number", "CHECK_SOURCE_OF_TRUTH")
+
+                  if not suppress:
+                      pr = graphql_pull_request(pr_number)
+                      result["pr_number"] = str(pr["number"])
+                      pr_head_repository = pr.get("headRepository") or {}
+                      same_repository = pr_head_repository.get("nameWithOwner") == repository
+                      if not same_repository:
+                          suppress = True
+                          set_suppressed("external_pr", "SUPPRESSED_EXTERNAL_PR")
+                      elif pr["baseRefName"] != "main":
+                          suppress = True
+                          set_suppressed("non_main_base", "CHECK_SOURCE_OF_TRUTH")
+                      elif workflow_run.get("head_sha") != pr["headRefOid"]:
+                          suppress = True
+                          set_suppressed("stale_head_sha", "SUPPRESSED_STALE_STATE")
+                      else:
+                          result["short_head_sha"] = pr["headRefOid"][:12]
+                          result["revalidation"] = "passed"
+                          owner_action = "NO_ACTION" if workflow_conclusion == "success" else "CHECK_SOURCE_OF_TRUTH"
+                          ai_verdict = "UNAVAILABLE" if workflow_name == "AI Review Gate" else None
+                          payload = build_payload({
+                              "repository": repository,
+                              "event_type": event_name,
+                              "workflow_name": workflow_name,
+                              "check_status": workflow_status,
+                              "check_conclusion": workflow_conclusion,
+                              "revalidation": "passed",
+                              "workflow_run_id": workflow_run_id,
+                              "owner_action": owner_action,
+                              "pr_number": str(pr["number"]),
+                              "pr_state": pr["state"],
+                              "base_branch": pr["baseRefName"],
+                              "short_head_sha": pr["headRefOid"][:12],
+                              "pr_url": pr["url"],
+                              "ai_review_gate_verdict": ai_verdict,
+                          })
+                  send_requested = not suppress
+              else:
+                  suppress = True
+                  send_requested = False
+                  set_suppressed("unsupported_event", "CHECK_SOURCE_OF_TRUTH")
+          except Exception as exc:
+              suppress = True
+              send_requested = False
+              set_suppressed("revalidation_failed", "SUPPRESSED_REDACTION_UNCERTAIN")
+              result["discord_send_result"] = "suppressed_revalidation_failed"
+              print(f"Redacted revalidation failure: {type(exc).__name__}", file=sys.stderr)
+
+          if suppress:
+              send_requested = False
+              result["discord_send_result"] = "suppressed"
+          elif not discord_target:
+              send_requested = False
+              result["suppression_reason"] = "missing_discord_target"
+              result["discord_send_result"] = "suppressed_missing_discord_target"
+
+          if send_requested and payload is not None:
+              result["discord_send_attempted"] = "true"
+              request = urllib.request.Request(
+                  discord_target,
+                  data=json.dumps(payload).encode("utf-8"),
+                  headers={"Content-Type": "application/json"},
+                  method="POST",
+              )
+              try:
+                  with urllib.request.urlopen(request, timeout=20) as response:
+                      if response.status == 429:
+                          result["discord_send_result"] = "failed_closed_rate_limited"
+                      elif 200 <= response.status < 300:
+                          result["discord_send_result"] = "sent"
+                      else:
+                          result["discord_send_result"] = "failed_closed_http_error"
+              except urllib.error.HTTPError as exc:
+                  if exc.code == 429:
+                      result["discord_send_result"] = "failed_closed_rate_limited"
+                  else:
+                      result["discord_send_result"] = "failed_closed_http_error"
+              except Exception:
+                  result["discord_send_result"] = "failed_closed_send_error"
+
+          with open(summary_path, "a", encoding="utf-8") as summary:
+              summary.write("## Discord-1a Notification\n\n")
+              summary.write("| Field | Value |\n")
+              summary.write("| --- | --- |\n")
+              summary.write(f"| event type | `{result['event_type']}` |\n")
+              summary.write(f"| trusted workflow | `{result['trusted_workflow']}` |\n")
+              summary.write(f"| PR number | `{result['pr_number']}` |\n")
+              summary.write(f"| short head SHA | `{result['short_head_sha']}` |\n")
+              summary.write(f"| source-of-truth revalidation | `{result['revalidation']}` |\n")
+              summary.write(f"| suppression reason | `{result['suppression_reason']}` |\n")
+              summary.write(f"| Discord send attempted | `{result['discord_send_attempted']}` |\n")
+              summary.write(f"| Discord send result | `{result['discord_send_result']}` |\n")
+              summary.write(f"| owner action category | `{result['owner_action']}` |\n")
+          PY
