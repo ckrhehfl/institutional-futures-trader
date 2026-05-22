@@ -11,6 +11,7 @@ applies_when:
   - "redacted status를 GitHub 밖으로 보내는 read-only notification automation을 구현하는 경우"
   - "workflow implementation PR에서 AI Review Gate가 NEEDS_OWNER_POLICY를 반환하는 경우"
   - "merge 이후 default branch에서 workflow_dispatch 동작을 검증하는 경우"
+  - "Discord webhook smoke test가 failed_closed_http_error로 fail closed되는 경우"
 tags: [discord, github-actions, owner-decision, ai-review-gate, workflow-dispatch]
 ---
 
@@ -48,6 +49,29 @@ send_discord=false
 
 이 경로는 redacted job summary만 남기고 Discord webhook secret을 요구하지 않아야 한다. 이후 owner가 `DISCORD_1A_WEBHOOK_URL`을 설정하면 다음 smoke test에서 `send_discord=true`를 사용할 수 있으며, redacted message를 최대 1개만 보내야 한다.
 
+PR #47은 `send_discord=true` smoke test가 `failed_closed_http_error`로 끝난 뒤 추가된 최소 bugfix였다. workflow는 안전하게 fail closed했고 secret, raw response, raw PR text, raw review text, Codex output을 노출하지 않았다. 원인은 Discord webhook POST가 `Content-Type: application/json`만 설정하고 explicit `User-Agent`를 보내지 않은 점이었다. Discord/Cloudflare compatibility에서는 Python `urllib.request` 같은 낮은 수준 HTTP client도 Discord-compatible `User-Agent`를 명시해야 할 수 있다.
+
+해결은 Discord webhook request header에 `User-Agent`를 추가하는 것으로 충분했다. Trigger, permission, payload schema, logging, summary output, secret handling은 바꾸지 않았다.
+
+```python
+headers={
+    "Content-Type": "application/json",
+    "User-Agent": "DiscordBot (https://github.com/ckrhehfl/institutional-futures-trader, 1.0)",
+}
+```
+
+수정 후 default branch에서 `workflow_dispatch` smoke run이 성공했고, redacted summary 기준으로 다음 상태를 확인했다.
+
+```text
+event type=workflow_dispatch
+trusted workflow=manual
+source-of-truth revalidation=manual_smoke
+suppression reason=none
+Discord send attempted=true
+Discord send result=sent
+owner action category=NO_ACTION
+```
+
 ## 중요한 이유
 
 read-only notification automation이라도 repository state를 다른 시스템으로 투영한다. Discord는 source of truth가 아니다. Discord는 GitHub PR, check, artifact state의 redacted/read-only projection이다. workflow는 무엇이든 보내기 전에 GitHub source-of-truth data를 재검증하고 unsafe path를 suppress할 수 있어야 한다.
@@ -65,6 +89,8 @@ default-branch dry-run은 implementation correctness와 operational readiness를
 - PR/check state를 관찰하는 `workflow_run` automation을 추가할 때
 - AI Review Gate가 workflow PR을 `NEEDS_OWNER_POLICY`로 분류할 때
 - read-only workflow가 repository secret에 의존하지만 dry-run validation에서는 그 secret이 필요하지 않아야 할 때
+- Python `urllib.request` 또는 유사한 low-level HTTP client로 Discord webhook을 호출할 때
+- Discord webhook smoke test가 `failed_closed_http_error`로 끝났지만 secret이나 payload를 노출하지 않고 원인을 좁혀야 할 때
 
 ## 예시
 
@@ -110,6 +136,9 @@ missing webhook secret -> suppress Discord send
 - 실제 webhook send를 테스트하기 전에 `send_discord=false`로 시작한다.
 - logs, job summary, artifacts, Discord payload가 secrets, raw PR text, raw review text, raw Codex output, account data, wallet data, trading data를 노출하지 않는지 확인한다.
 - `DISCORD_1A_WEBHOOK_URL` 누락은 failed implementation이 아니라 suppression path로 취급한다.
+- 외부 webhook/API POST에서는 `Content-Type`뿐 아니라 service-compatible `User-Agent` 같은 최소 header compatibility도 확인한다.
+- HTTP error가 발생해도 secret, raw response body, raw PR text, raw review text, Codex output을 출력하지 않고 fail closed한다.
+- 원인을 webhook URL 또는 secret 문제로 단정하지 말고 HTTP client, headers, payload compatibility를 함께 확인한다.
 
 ## 관련 문서
 
