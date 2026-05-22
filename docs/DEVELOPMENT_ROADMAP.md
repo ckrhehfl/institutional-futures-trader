@@ -71,13 +71,14 @@
 - exchange-specific event translation 구현
 - live/demo/paper execution path 구현
 
-## 5. Risk Engine Interface Only - current implementation step
+## 5. Risk Engine Interface Only - completed
 
 목표:
 
 - `Risk Engine`의 책임, 입력, 출력, 거부 사유, audit requirement를 interface 수준에서 정의합니다.
 - `Risk Engine`이 strategy, AI, config, operator intent보다 최종 권한을 가진다는 boundary를 코드와 문서에 반영합니다.
 - failure handling과 guard behavior를 테스트 우선으로 고정합니다.
+- 이 단계는 Risk Engine interface contract만 고정한 previous implementation step입니다.
 
 이번 단계에서 하지 않는 것:
 
@@ -87,20 +88,30 @@
 - exchange adapter integration
 - strategy/ML sizing logic
 
-## 6. OMS State Machine
+## 6. OMS State Machine - current implementation step
 
 목표:
 
 - order lifecycle state와 transition rule을 exchange-independent하게 정의합니다.
-- invalid transition, duplicate event, restart/replay scenario에 대한 테스트를 추가합니다.
-- OMS가 exchange API를 직접 호출하지 않는 boundary를 명확히 합니다.
+- PR #50에서는 Step 6 전체가 아니라 exchange-independent OMS State Machine v0 pure helper만 구현합니다.
+- `OrderStatus` transition policy와 validation helper를 추가합니다.
+- invalid transition은 fail closed로 거부합니다.
+- terminal / no-auto-forward states를 명확히 고정합니다.
+- positive / negative transition tests로 state machine boundary를 검증합니다.
+- OMS가 exchange API를 직접 호출하지 않는 boundary를 유지합니다.
 
 이번 단계에서 하지 않는 것:
 
+- OMS runtime 구현
 - 실제 order submission
 - exchange adapter 구현
+- ExecutionGateway 구현
+- Risk Engine implementation
+- event bus/storage runtime 구현
+- reconciliation runtime 구현
 - live/demo trading integration
 - full trading engine runtime
+- live trading path
 - persistence runtime 확장
 
 ## 7. Backtest / Historical Replay
