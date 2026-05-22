@@ -122,6 +122,11 @@ def test_every_order_status_is_represented_in_transition_table() -> None:
     assert set(ALLOWED_ORDER_STATUS_TRANSITIONS) == set(OrderStatus)
 
 
+def test_transition_table_cannot_be_mutated_at_runtime() -> None:
+    with pytest.raises(TypeError):
+        ALLOWED_ORDER_STATUS_TRANSITIONS[OrderStatus.CREATED] = frozenset()
+
+
 def test_terminal_status_helper_matches_policy() -> None:
     assert TERMINAL_ORDER_STATUSES == TERMINAL_STATUSES
     assert OPERATOR_REVIEW_ORDER_STATUSES == frozenset({OrderStatus.UNKNOWN})

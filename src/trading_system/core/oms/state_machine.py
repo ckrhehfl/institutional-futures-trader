@@ -1,6 +1,7 @@
 """Exchange-independent OMS order status transition policy."""
 
 from collections.abc import Mapping
+from types import MappingProxyType
 
 from trading_system.core.domain import OrderStatus
 
@@ -22,41 +23,43 @@ TERMINAL_ORDER_STATUSES: frozenset[OrderStatus] = frozenset(
 
 OPERATOR_REVIEW_ORDER_STATUSES: frozenset[OrderStatus] = frozenset({OrderStatus.UNKNOWN})
 
-ALLOWED_ORDER_STATUS_TRANSITIONS: Mapping[OrderStatus, frozenset[OrderStatus]] = {
-    OrderStatus.CREATED: frozenset({OrderStatus.PENDING_RISK}),
-    OrderStatus.PENDING_RISK: frozenset(
-        {
-            OrderStatus.RISK_APPROVED,
-            OrderStatus.RISK_REJECTED,
-        }
-    ),
-    OrderStatus.RISK_REJECTED: frozenset(),
-    OrderStatus.RISK_APPROVED: frozenset({OrderStatus.ACCEPTED}),
-    OrderStatus.ACCEPTED: frozenset({OrderStatus.SUBMITTED}),
-    OrderStatus.SUBMITTED: frozenset(
-        {
-            OrderStatus.PARTIALLY_FILLED,
-            OrderStatus.FILLED,
-            OrderStatus.CANCELED,
-            OrderStatus.REJECTED,
-            OrderStatus.EXPIRED,
-            OrderStatus.UNKNOWN,
-        }
-    ),
-    OrderStatus.PARTIALLY_FILLED: frozenset(
-        {
-            OrderStatus.FILLED,
-            OrderStatus.CANCELED,
-            OrderStatus.EXPIRED,
-            OrderStatus.UNKNOWN,
-        }
-    ),
-    OrderStatus.FILLED: frozenset(),
-    OrderStatus.CANCELED: frozenset(),
-    OrderStatus.REJECTED: frozenset(),
-    OrderStatus.EXPIRED: frozenset(),
-    OrderStatus.UNKNOWN: frozenset(),
-}
+ALLOWED_ORDER_STATUS_TRANSITIONS: Mapping[OrderStatus, frozenset[OrderStatus]] = MappingProxyType(
+    {
+        OrderStatus.CREATED: frozenset({OrderStatus.PENDING_RISK}),
+        OrderStatus.PENDING_RISK: frozenset(
+            {
+                OrderStatus.RISK_APPROVED,
+                OrderStatus.RISK_REJECTED,
+            }
+        ),
+        OrderStatus.RISK_REJECTED: frozenset(),
+        OrderStatus.RISK_APPROVED: frozenset({OrderStatus.ACCEPTED}),
+        OrderStatus.ACCEPTED: frozenset({OrderStatus.SUBMITTED}),
+        OrderStatus.SUBMITTED: frozenset(
+            {
+                OrderStatus.PARTIALLY_FILLED,
+                OrderStatus.FILLED,
+                OrderStatus.CANCELED,
+                OrderStatus.REJECTED,
+                OrderStatus.EXPIRED,
+                OrderStatus.UNKNOWN,
+            }
+        ),
+        OrderStatus.PARTIALLY_FILLED: frozenset(
+            {
+                OrderStatus.FILLED,
+                OrderStatus.CANCELED,
+                OrderStatus.EXPIRED,
+                OrderStatus.UNKNOWN,
+            }
+        ),
+        OrderStatus.FILLED: frozenset(),
+        OrderStatus.CANCELED: frozenset(),
+        OrderStatus.REJECTED: frozenset(),
+        OrderStatus.EXPIRED: frozenset(),
+        OrderStatus.UNKNOWN: frozenset(),
+    }
+)
 
 
 def _normalize_order_status(status: OrderStatus | str) -> OrderStatus:
