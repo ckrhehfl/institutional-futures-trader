@@ -88,12 +88,12 @@
 - exchange adapter integration
 - strategy/ML sizing logic
 
-## 6. OMS State Machine - current implementation step
+## 6. OMS State Machine - completed
 
 목표:
 
 - order lifecycle state와 transition rule을 exchange-independent하게 정의합니다.
-- PR #50에서는 Step 6 전체가 아니라 exchange-independent OMS State Machine v0 pure helper만 구현합니다.
+- PR #50에서 exchange-independent OMS State Machine v0 pure helper 구현이 완료되었습니다.
 - `OrderStatus` transition policy와 validation helper를 추가합니다.
 - invalid transition은 fail closed로 거부합니다.
 - terminal / no-auto-forward states를 명확히 고정합니다.
@@ -114,19 +114,26 @@
 - live trading path
 - persistence runtime 확장
 
-## 7. Backtest / Historical Replay
+## 7. Backtest / Historical Replay - current implementation step
 
 목표:
 
-- `backtest` execution mode와 deterministic historical replay 요구사항을 paper execution 전에 명확히 검증합니다.
-- replayed fees, slippage assumptions, funding treatment, PnL, drawdown, risk decision history를 검증 가능한 산출물로 남깁니다.
-- paper/demo/live와 같은 core domain boundary를 사용하되 real exchange order path에 접근하지 않도록 합니다.
+- Step 7은 docs-first로 `Backtest / Historical Replay` v0 boundary를 고정하는 current implementation step입니다.
+- exchange-independent deterministic replay contract를 먼저 정의하고, full runtime backtest engine 구현은 후속 단계로 미룹니다.
+- `TradingMode.BACKTEST`, `ExecutionVenue.BACKTEST`, `DomainEvent`, `OrderIntent`, `Order`, `Fill`, `RiskDecision`, `ReconciliationEvent`의 관계를 contract 관점에서 정렬합니다.
+- fees/slippage/funding/PnL/drawdown은 계산 구현이 아니라 assumption/validation contract 항목으로만 정의합니다.
 
 이번 단계에서 하지 않는 것:
 
-- live trading
-- demo trading integration
-- BingX REST/WebSocket client
+- backtest runtime engine 구현
+- event bus/storage/database runtime 구현
+- market data loader 또는 external data fetch 구현
+- `PaperExecutionVenue`/`DemoExecutionVenue`/`LiveExecutionVenue` 구현 또는 연동
+- exchange adapter 구현
+- BingX REST/WebSocket 구현
+- strategy/ML alpha 구현
+- real order submission 구현
+- live/demo trading integration
 - production deployment
 - live capital에 영향을 주는 runtime decision path
 
