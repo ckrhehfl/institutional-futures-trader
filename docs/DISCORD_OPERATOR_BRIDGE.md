@@ -114,7 +114,7 @@ GitHub Issue task contract 생성을 시작합니다.
 - Output: GitHub Issue URL 또는 생성 실패 summary
 - Discord-2b 이전 단계에서는 설계 후보일 뿐이며 실제 Issue 생성은 구현하지 않습니다.
 - `/pm start` remains after read-only `/pm status` and `/pm summary` phases.
-- Codex task 시작 방식은 확인 필요입니다.
+- Codex task 시작 방식은 owner decision이 필요한 항목입니다.
 
 ### `/pm status`
 
@@ -184,7 +184,7 @@ Triggers include:
 
 ### Discord-1a: Incoming Webhook Notification-Only
 
-- Future rollout target only; this PR does not implement a webhook.
+- Implemented as notification-only workflow; this design document does not modify workflow behavior.
 - Discord may receive redacted summaries through an incoming webhook after a future owner decision.
 - No GitHub write.
 - No slash commands.
@@ -192,11 +192,11 @@ Triggers include:
 - No review-thread resolve.
 - No PR comments, labels, branch updates, commits, merges, or issue creation.
 
-### Discord-1b: Read-Only PR/Check/AI Gate Summary Notification
+### Discord-1b: Read-Only Source-of-Truth Summarizer
 
-- Notify redacted summaries of PR state, checks, and AI Review Gate status.
-- Read GitHub metadata only.
-- GitHub remains source of truth.
+- Discord-1b는 Discord-1a를 대체하지 않고 보완하는 read-only summarizer boundary입니다.
+- command path, slash command, bot handler를 포함하지 않습니다.
+- GitHub source-of-truth 재검증과 redaction policy를 문서로 고정하며 구현은 별도 owner decision 이후로 미룹니다.
 
 ### Discord-1c: Post-Merge Lesson Capture Notification
 
@@ -556,7 +556,7 @@ Risk: Discord could show an outdated state that operators mistake for current tr
 
 Mitigation: Treat Discord as projection only. Reverify GitHub source-of-truth before every future action.
 
-## Owner Decision Points / 확인 필요
+## Owner Decision Points Requiring OWNER_DECISION_REQUIRED
 
 - Discord webhook URL 저장/회전 방식
 - owner signoff 승인자 목록
