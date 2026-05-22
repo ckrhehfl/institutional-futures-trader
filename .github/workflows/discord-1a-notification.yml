@@ -261,7 +261,10 @@ jobs:
               request = urllib.request.Request(
                   discord_target,
                   data=json.dumps(payload).encode("utf-8"),
-                  headers={"Content-Type": "application/json"},
+                  headers={
+                      "Content-Type": "application/json",
+                      "User-Agent": "DiscordBot (https://github.com/ckrhehfl/institutional-futures-trader, 1.0)",
+                  },
                   method="POST",
               )
               try:
