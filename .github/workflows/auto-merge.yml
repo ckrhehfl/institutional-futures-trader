@@ -10,6 +10,7 @@ on:
       - edited
       - labeled
       - unlabeled
+      - closed
 
 permissions:
   contents: write
@@ -138,7 +139,7 @@ jobs:
           settle_for_seconds "$MIN_HEAD_AGE_SECONDS" "head-update"
 
       - name: Enable GitHub auto-merge
-        if: steps.eligibility.outputs.eligible == 'true'
+        if: steps.eligibility.outputs.eligible == 'true' && github.event.action != 'closed'
         run: |
           gh pr merge "$PR_NUMBER" \
             --repo "$GITHUB_REPOSITORY" \
@@ -149,10 +150,21 @@ jobs:
       - name: Disable GitHub auto-merge when ineligible
         if: steps.eligibility.outputs.eligible != 'true' && github.event.pull_request.head.repo.full_name == github.repository
         run: |
+          if ! auto_merge_enabled="$(gh pr view "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --json autoMergeRequest --jq '.autoMergeRequest != null')"; then
+            echo "Unable to read GitHub auto-merge state for PR $PR_NUMBER."
+            exit 1
+          fi
+
+          if [ "$auto_merge_enabled" != "true" ]; then
+            echo "GitHub auto-merge was already disabled or unavailable for PR $PR_NUMBER."
+            exit 0
+          fi
+
           if gh pr merge "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --disable-auto; then
             echo "Disabled GitHub auto-merge for ineligible PR $PR_NUMBER."
           else
-            echo "GitHub auto-merge was not enabled or could not be disabled for PR $PR_NUMBER."
+            echo "GitHub auto-merge was enabled but could not be disabled for PR $PR_NUMBER."
+            exit 1
           fi
 
       - name: Write summary
